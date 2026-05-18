@@ -140,19 +140,24 @@ def parse_questions(filepath):
     return questions
 
 if __name__ == '__main__':
-    all_data = {}
     total = 0
     issues = []
+
+    # Create data directory if not exists
+    if not os.path.exists('data'):
+        os.makedirs('data')
 
     for cert in CERTS:
         filepath = f'{cert}.txt'
         questions = parse_questions(filepath)
-        all_data[cert] = questions
         count = len(questions)
         total += count
 
         if count > 0:
             print(f'  {cert}: {count} questões')
+            # Save separate JSON file for this cert
+            with open(f'data/{cert}.json', 'w', encoding='utf-8') as f:
+                json.dump(questions, f, ensure_ascii=False, separators=(',', ':'))
 
             # Validação
             for q in questions:
@@ -163,20 +168,11 @@ if __name__ == '__main__':
         else:
             print(f'  {cert}: (vazio)')
 
-    with open('questoes.json', 'w', encoding='utf-8') as f:
-        json.dump(all_data, f, ensure_ascii=False, indent=2)
-
-    js_content = 'const QUESTOES_DATA = ' + json.dumps(all_data, ensure_ascii=False, indent=2) + ';\n'
-    with open('questoes_data.js', 'w', encoding='utf-8') as f:
-        f.write(js_content)
-
     print(f'\nTotal: {total} questões convertidas')
-    print(f'Arquivos gerados: questoes.json, questoes_data.js')
+    print(f'Arquivos gerados na pasta data/')
 
     if issues:
         print(f'\n[!] {len(issues)} possivel(is) problema(s) encontrado(s):')
-        # for issue in issues[:20]:
-        #    print(issue)
         print(f' (Total de problemas: {len(issues)})')
     else:
         print('[OK] Nenhum problema detectado.')

@@ -1,11 +1,16 @@
 (function(){
   // State
   let config = { cert: null, qty: 30, trainingMode: false };
+  const QUESTIONS = {};
   let examQuestions = [];
   let answers = {};
+  let flagged = new Set();
   let currentIdx = 0;
   let timerInterval = null;
   let elapsedSeconds = 0;
+  let isPaused = false;
+  let currentFontSize = 15;
+
 
   // Cert metadata
   const CERT_META = {
@@ -57,28 +62,55 @@
     window.scrollTo(0, 0);
   }
 
-  // Init: show question counts on cert cards
+  // Init: set default text before load
   function initCertCounts() {
-    Object.keys(QUESTIONS).forEach(cert => {
+    Object.keys(CERT_META).forEach(cert => {
       const el = document.getElementById('count-' + cert);
-      const count = QUESTIONS[cert] ? QUESTIONS[cert].length : 0;
       if (el) {
-        el.textContent = count > 0 ? count + ' questões' : 'Em breve';
-        el.classList.toggle('empty', count === 0);
-      }
-      // Disable cards with no questions
-      const card = document.querySelector(`.cert-card[data-cert="${cert}"]`);
-      if (card && count === 0) {
-        card.classList.add('disabled');
+        el.textContent = 'Acessar';
       }
     });
   }
+
   initCertCounts();
 
   // Cert selection
   document.querySelectorAll('.cert-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', async () => {
       const cert = card.dataset.cert;
+      
+      // Lazy Load Questions
+      if (!QUESTIONS[cert]) {
+        document.getElementById('loading-overlay').style.display = 'flex';
+        try {
+          const res = await fetch(`data/${cert}.json`);
+          if (!res.ok) throw new Error('File not found');
+          const rawData = await res.json();
+          QUESTIONS[cert] = rawData.map(q => {
+            const correctIndices = q.respostas_corretas
+              .map(r => q.opcoes.indexOf(r))
+              .filter(i => i !== -1);
+            return {
+              id: q.id,
+              cert: cert,
+              question: q.pergunta,
+              options: q.opcoes,
+              correct: correctIndices.length === 1 ? correctIndices[0] : correctIndices,
+              explanation: q.explicacao
+            };
+          });
+        } catch (e) {
+          document.getElementById('loading-overlay').style.display = 'none';
+          alert('Não foi possível carregar as questões desta certificação. Verifique se o arquivo existe em data/' + cert + '.json');
+          return;
+        }
+        document.getElementById('loading-overlay').style.display = 'none';
+        
+        // Update count dynamically
+        const el = document.getElementById('count-' + cert);
+        if (el) el.textContent = QUESTIONS[cert].length + ' questões';
+      }
+
       const pool = QUESTIONS[cert] || [];
       if (pool.length === 0) return;
 
@@ -165,8 +197,10 @@
     document.getElementById('q-cert').textContent = CERT_META[config.cert].name;
 
     answers = {};
+    flagged = new Set();
     currentIdx = 0;
     elapsedSeconds = 0;
+    isPaused = false;
     startTimer();
     buildDots();
     renderQuestion();
@@ -175,10 +209,13 @@
 
   // Timer
   function startTimer() {
+    if (isPaused) return;
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-      elapsedSeconds++;
-      document.getElementById('exam-timer').textContent = '⏱ ' + formatTime(elapsedSeconds);
+      if (!isPaused) {
+        elapsedSeconds++;
+        document.getElementById('exam-timer').innerHTML = '<i class="ph ph-timer"></i> <span>' + formatTime(elapsedSeconds) + '</span>';
+      }
     }, 1000);
   }
   function formatTime(s) {
@@ -238,9 +275,22 @@
 
   // Render question
   function renderQuestion() {
+    const container = document.querySelector('.question-container');
+    container.classList.remove('animate-slide-up');
+    void container.offsetWidth; // force reflow
+    container.classList.add('animate-slide-up');
     const q = examQuestions[currentIdx];
     document.getElementById('q-cert').textContent = config.cert + ' — ' + CERT_META[config.cert].name;
     document.getElementById('q-text').innerHTML = formatText(q.question);
+
+    const flagBtn = document.getElementById('btn-flag');
+    if (flagged.has(currentIdx)) {
+      flagBtn.style.opacity = '1';
+      flagBtn.style.filter = 'none';
+    } else {
+      flagBtn.style.opacity = '0.5';
+      flagBtn.style.filter = 'grayscale(1)';
+    }
 
     const optContainer = document.getElementById('q-options');
     optContainer.innerHTML = '';
@@ -313,10 +363,42 @@
     // Nav buttons
     document.getElementById('btn-prev').disabled = currentIdx === 0;
     const nextBtn = document.getElementById('btn-next');
-    nextBtn.textContent = currentIdx === examQuestions.length - 1 ? 'Finalizar ✓' : 'Próxima →';
+    nextBtn.innerHTML = currentIdx === examQuestions.length - 1 ? '<i class="ph ph-check"></i> Finalizar' : 'Próxima <i class="ph ph-arrow-right"></i>';
 
     updateDots();
   }
+
+  // UX Features
+  document.getElementById('btn-pause').addEventListener('click', () => {
+    isPaused = true;
+    clearInterval(timerInterval);
+    document.getElementById('pause-overlay').style.display = 'flex';
+  });
+
+  document.getElementById('btn-resume').addEventListener('click', () => {
+    isPaused = false;
+    document.getElementById('pause-overlay').style.display = 'none';
+    startTimer();
+  });
+
+  document.getElementById('btn-font-plus').addEventListener('click', () => {
+    if (currentFontSize < 24) currentFontSize += 1;
+    document.getElementById('exam-body-main').style.fontSize = currentFontSize + 'px';
+  });
+
+  document.getElementById('btn-font-minus').addEventListener('click', () => {
+    if (currentFontSize > 12) currentFontSize -= 1;
+    document.getElementById('exam-body-main').style.fontSize = currentFontSize + 'px';
+  });
+
+  document.getElementById('btn-flag').addEventListener('click', () => {
+    if (flagged.has(currentIdx)) {
+      flagged.delete(currentIdx);
+    } else {
+      flagged.add(currentIdx);
+    }
+    renderQuestion();
+  });
 
   // Navigation
   document.getElementById('btn-prev').addEventListener('click', () => {
@@ -385,11 +467,11 @@
     const sub = document.getElementById('result-subtitle');
     const passingScore = 70;
     if (pct >= passingScore) {
-      icon.textContent = '🏆';
+      icon.innerHTML = '<i class="ph ph-trophy"></i>';
       title.textContent = 'Aprovado!';
       sub.textContent = `Parabéns! Você atingiu ${pct}% no ${config.cert} (mínimo ${passingScore}%).`;
     } else {
-      icon.textContent = '📚';
+      icon.innerHTML = '<i class="ph ph-books"></i>';
       title.textContent = 'Continue Estudando';
       sub.textContent = `Você atingiu ${pct}% no ${config.cert}. É necessário ${passingScore}% para aprovação.`;
     }
@@ -453,9 +535,10 @@
       if (filter === 'correct' && !correct) return;
       if (filter === 'wrong' && (correct || skipped)) return;
       if (filter === 'skipped' && !skipped) return;
+      if (filter === 'flagged' && !flagged.has(i)) return;
 
       const cls = skipped ? 'ri-skipped' : correct ? 'ri-correct' : 'ri-wrong';
-      const status = skipped ? '⬜ Pulada' : correct ? '✅ Correta' : '❌ Errada';
+      const status = skipped ? '<i class="ph ph-square"></i> Pulada' : correct ? '<i class="ph ph-check-circle"></i> Correta' : '<i class="ph ph-x-circle"></i> Errada';
       const isMulti = Array.isArray(q.correct);
       const correctSet = isMulti ? q.correct : [q.correct];
       const userSet = isMulti ? (Array.isArray(userAns) ? userAns : []) : (userAns !== undefined ? [userAns] : []);
@@ -473,7 +556,7 @@
       item.innerHTML = `
         <div class="ri-header">
           <span class="ri-num">Questão ${i+1}</span>
-          <span style="font-size:.8rem">${status}</span>
+          <span style="font-size:.8rem; display:flex; align-items:center; gap:4px;">${status}</span>
         </div>
         <p class="ri-question">${formatText(q.question)}</p>
         <div class="ri-options">${optsHtml}</div>
@@ -509,7 +592,7 @@
 
   document.getElementById('btn-export-prompt').addEventListener('click', () => {
     const errors = getErrors();
-    if (errors.length === 0) return alert('Nenhum erro para exportar! 🎉');
+    if (errors.length === 0) return alert('Nenhum erro para exportar!');
 
     let promptText = `Atue como um Arquiteto de Soluções AWS Sênior e tutor. Acabei de fazer um simulado da certificação ${config.cert} e errei as seguintes questões. Com base nesses erros, por favor:\n\n`;
     promptText += `1. Identifique quais são as minhas maiores lacunas de conhecimento.\n`;
@@ -529,7 +612,7 @@
     });
 
     navigator.clipboard.writeText(promptText).then(() => {
-      alert('✅ Super Prompt copiado para a área de transferência!\n\nAgora basta colar (Ctrl+V) no ChatGPT, Gemini ou Claude para gerar seu plano de estudos.');
+      alert('Super Prompt copiado para a área de transferência!\n\nAgora basta colar (Ctrl+V) no ChatGPT, Gemini ou Claude para gerar seu plano de estudos.');
       modal.style.display = 'none';
     }).catch(err => {
       alert('Erro ao copiar para a área de transferência. ' + err);
@@ -538,7 +621,7 @@
 
   document.getElementById('btn-export-csv').addEventListener('click', () => {
     const errors = getErrors();
-    if (errors.length === 0) return alert('Nenhum erro para exportar! 🎉');
+    if (errors.length === 0) return alert('Nenhum erro para exportar!');
 
     const escapeCSV = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
     let csv = 'Pergunta,Opções,Resposta Correta,Explicação\n';
@@ -554,7 +637,7 @@
 
   document.getElementById('btn-export-anki').addEventListener('click', () => {
     const errors = getErrors();
-    if (errors.length === 0) return alert('Nenhum erro para exportar! 🎉');
+    if (errors.length === 0) return alert('Nenhum erro para exportar!');
 
     // For Anki, TSV: Front \t Back \n
     // HTML is supported, but actual \n breaks rows, so replace \n with <br>

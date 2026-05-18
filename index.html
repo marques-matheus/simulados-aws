@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulados AWS</title>
     <meta name="description" content="Simulados para certificações AWS: CLF-C02, DVA-C02, SAA-C03, SCS-C02, SOA-C02 e SAP-C02.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -25,7 +26,7 @@
                 <p class="cert-section-title">Certificações</p>
                 <div class="cert-list" id="cert-grid">
                     <button class="cert-card" data-cert="CLF-C02" id="cert-clf">
-                        <div class="cert-icon">☁️</div>
+                        <div class="cert-icon"><i class="ph ph-cloud"></i></div>
                         <div class="cert-info">
                             <span class="cert-level foundational">Foundational</span>
                             <h3>Cloud Practitioner</h3>
@@ -34,7 +35,7 @@
                         <span class="cert-count" id="count-CLF-C02">0</span>
                     </button>
                     <button class="cert-card" data-cert="SAA-C03" id="cert-saa">
-                        <div class="cert-icon">🏗️</div>
+                        <div class="cert-icon"><i class="ph ph-buildings"></i></div>
                         <div class="cert-info">
                             <span class="cert-level associate">Associate</span>
                             <h3>Solutions Architect</h3>
@@ -43,7 +44,7 @@
                         <span class="cert-count" id="count-SAA-C03">0</span>
                     </button>
                     <button class="cert-card" data-cert="DVA-C02" id="cert-dva">
-                        <div class="cert-icon">💻</div>
+                        <div class="cert-icon"><i class="ph ph-code"></i></div>
                         <div class="cert-info">
                             <span class="cert-level associate">Associate</span>
                             <h3>Developer</h3>
@@ -52,7 +53,7 @@
                         <span class="cert-count" id="count-DVA-C02">0</span>
                     </button>
                     <button class="cert-card" data-cert="SOA-C02" id="cert-soa">
-                        <div class="cert-icon">⚙️</div>
+                        <div class="cert-icon"><i class="ph ph-gear"></i></div>
                         <div class="cert-info">
                             <span class="cert-level associate">Associate</span>
                             <h3>CloudOps Engineer</h3>
@@ -61,7 +62,7 @@
                         <span class="cert-count" id="count-SOA-C02">0</span>
                     </button>
                     <button class="cert-card" data-cert="SCS-C02" id="cert-scs">
-                        <div class="cert-icon">🔐</div>
+                        <div class="cert-icon"><i class="ph ph-lock-key"></i></div>
                         <div class="cert-info">
                             <span class="cert-level specialty">Specialty</span>
                             <h3>Security</h3>
@@ -70,7 +71,7 @@
                         <span class="cert-count" id="count-SCS-C02">0</span>
                     </button>
                     <button class="cert-card" data-cert="SAP-C02" id="cert-sap">
-                        <div class="cert-icon">🏛️</div>
+                        <div class="cert-icon"><i class="ph ph-bank"></i></div>
                         <div class="cert-info">
                             <span class="cert-level professional">Professional</span>
                             <h3>Solutions Architect Pro</h3>
@@ -80,11 +81,17 @@
                     </button>
                 </div>
 
+                <!-- LOADING OVERLAY -->
+                <div id="loading-overlay" class="modal-overlay" style="display:none; flex-direction:column; gap:1rem; position:absolute; z-index:100;">
+                    <div class="spinner"></div>
+                    <p style="color:var(--text); font-weight:500;">Carregando questões...</p>
+                </div>
+
                 <!-- CONFIG -->
                 <div class="exam-config" id="exam-config" style="display:none">
                     <div class="config-header">
                         <h2 id="config-title">Configurar</h2>
-                        <button id="btn-change-cert" class="btn-sm btn-outline">← Voltar</button>
+                        <button id="btn-change-cert" class="btn-sm btn-outline"><i class="ph ph-arrow-left"></i> Voltar</button>
                     </div>
                     <div class="config-options">
                         <div class="config-group">
@@ -116,7 +123,7 @@
         <section id="exam-screen" class="screen">
             <header class="exam-header">
                 <div class="exam-header-left">
-                    <button id="btn-cancel-exam" title="Sair do Simulado" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.2rem;margin-right:12px;padding:0;display:flex;align-items:center;">←</button>
+                    <button id="btn-cancel-exam" title="Sair do Simulado" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.2rem;margin-right:12px;padding:0;display:flex;align-items:center;"><i class="ph ph-x"></i></button>
                     <span class="exam-logo" id="exam-cert-label">AWS</span>
                     <span id="exam-progress" class="exam-progress">1 / 30</span>
                 </div>
@@ -126,21 +133,32 @@
                     </div>
                 </div>
                 <div class="exam-header-right">
-                    <span id="exam-timer" class="exam-timer">⏱ 00:00</span>
-                    <button id="btn-finish-early" class="btn-sm btn-outline">Finalizar</button>
+                    <button id="btn-font-minus" class="btn-icon" title="Diminuir Fonte"><i class="ph ph-text-aa" style="font-size: 0.9em;"></i></button>
+                    <button id="btn-font-plus" class="btn-icon" title="Aumentar Fonte"><i class="ph ph-text-aa" style="font-size: 1.2em;"></i></button>
+                    <button id="btn-pause" class="btn-icon" title="Pausar"><i class="ph ph-pause"></i></button>
+                    <span id="exam-timer" class="exam-timer" style="display:flex; align-items:center; gap:4px;"><i class="ph ph-timer"></i> <span>00:00</span></span>
+                    <button id="btn-finish-early" class="btn-sm btn-outline"><i class="ph ph-check"></i> Finalizar</button>
                 </div>
             </header>
-            <main class="exam-body">
+            <div id="pause-overlay" class="modal-overlay" style="display:none; z-index:90;">
+                <div class="modal-content">
+                    <h3>Simulado Pausado</h3>
+                    <p>O tempo parou. Descanse os olhos e retorne quando estiver pronto.</p>
+                    <button id="btn-resume" class="btn-primary" style="margin-top:20px; display:flex; align-items:center; justify-content:center; gap:8px;"><i class="ph ph-play"></i> Retomar</button>
+                </div>
+            </div>
+            <main class="exam-body" id="exam-body-main">
                 <div class="question-container">
-                    <div class="question-meta">
+                    <div class="question-meta" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                         <span id="q-cert" class="tag tag-cert">CLF-C02</span>
+                        <button id="btn-flag" class="btn-icon" title="Marcar Questão" style="font-size:1.2rem; filter: grayscale(1); opacity:0.5; transition: all 0.2s;"><i class="ph ph-flag"></i></button>
                     </div>
                     <h2 id="q-text" class="question-text"></h2>
                     <div id="q-options" class="options-list"></div>
                     <div class="question-nav">
-                        <button id="btn-prev" class="btn-secondary" disabled>← Anterior</button>
+                        <button id="btn-prev" class="btn-secondary" disabled><i class="ph ph-arrow-left"></i> Anterior</button>
                         <div class="question-dots" id="question-dots"></div>
-                        <button id="btn-next" class="btn-primary" style="width:auto;display:inline-block">Próxima →</button>
+                        <button id="btn-next" class="btn-primary" style="width:auto;display:inline-flex;align-items:center;gap:6px;">Próxima <i class="ph ph-arrow-right"></i></button>
                     </div>
                 </div>
             </main>
@@ -150,7 +168,7 @@
         <section id="result-screen" class="screen">
             <div class="result-container">
                 <div class="result-header">
-                    <div id="result-icon" class="result-icon">🏆</div>
+                    <div id="result-icon" class="result-icon"><i class="ph ph-trophy"></i></div>
                     <h1 id="result-title" class="result-title">Resultado</h1>
                     <p id="result-subtitle" class="result-subtitle"></p>
                 </div>
@@ -169,7 +187,7 @@
                 </div>
                 <div class="result-actions">
                     <button id="btn-review" class="btn-primary" style="width:auto;display:inline-block">Revisar Respostas</button>
-                    <button id="btn-export-errors" class="btn-secondary" style="width:auto;display:inline-block">Exportar Erros 📥</button>
+                    <button id="btn-export-errors" class="btn-secondary" style="width:auto;display:inline-flex;align-items:center;gap:6px;"><i class="ph ph-download-simple"></i> Exportar Erros</button>
                     <button id="btn-new-exam" class="btn-secondary">Novo Simulado</button>
                 </div>
                 
@@ -179,9 +197,9 @@
                         <h3>Exportar Erros</h3>
                         <p>Escolha o formato para baixar as questões que você errou ou pulou:</p>
                         <div class="modal-actions" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                            <button id="btn-export-prompt" class="btn-primary">🤖 Gerar Prompt para IA (Copiar)</button>
-                            <button id="btn-export-csv" class="btn-primary">📊 Planilha (CSV)</button>
-                            <button id="btn-export-anki" class="btn-primary">🗂️ Flashcards (Anki TSV)</button>
+                            <button id="btn-export-prompt" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ph ph-robot"></i> Gerar Prompt para IA (Copiar)</button>
+                            <button id="btn-export-csv" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ph ph-table"></i> Planilha (CSV)</button>
+                            <button id="btn-export-anki" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ph ph-cards"></i> Flashcards (Anki TSV)</button>
                             <button id="btn-close-export" class="btn-outline" style="margin-top: 10px;">Cancelar</button>
                         </div>
                     </div>
@@ -192,7 +210,7 @@
         <!-- REVIEW -->
         <section id="review-screen" class="screen">
             <header class="review-header">
-                <button id="btn-back-result" class="btn-sm btn-outline">← Voltar</button>
+                <button id="btn-back-result" class="btn-sm btn-outline"><i class="ph ph-arrow-left"></i> Voltar</button>
                 <h2>Revisão</h2>
                 <span id="review-filter-label"></span>
             </header>
@@ -201,6 +219,7 @@
                 <button class="btn-filter" data-filter="correct">Corretas</button>
                 <button class="btn-filter" data-filter="wrong">Erradas</button>
                 <button class="btn-filter" data-filter="skipped">Puladas</button>
+                <button class="btn-filter" data-filter="flagged" style="display:flex;align-items:center;gap:4px;">Marcadas <i class="ph ph-flag"></i></button>
             </div>
             <div id="review-list" class="review-list"></div>
             <div class="review-bottom">
@@ -208,8 +227,6 @@
             </div>
         </section>
     </div>
-    <script src="questoes_data.js"></script>
-    <script src="questions.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

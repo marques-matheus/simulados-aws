@@ -23,8 +23,11 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Syncs files and deletes those no longer in the repo
-          aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --delete --exclude ".git/*" --exclude ".github/*"
+          # Clean up old monolithic files and python backend scripts from the bucket
+          aws s3 rm s3://${{ secrets.S3_BUCKET_NAME }} --recursive --exclude "*" --include "*.txt" --include "*.py" --include "questoes.json" --include "questoes_data.js" --include "questions.js" --include "*.md"
+          
+          # Syncs web files and deletes those no longer in the repo, excluding backend files
+          aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --delete --exclude ".git/*" --exclude ".github/*" --exclude "*.txt" --exclude "*.py" --exclude "*.md" --exclude "questoes*"
 
       - name: Invalidate CloudFront Cache
         run: |
