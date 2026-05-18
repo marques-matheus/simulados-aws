@@ -7,6 +7,7 @@
     <meta name="description" content="Simulados para certificações AWS: CLF-C02, DVA-C02, SAA-C03, SCS-C02, SOA-C02 e SAP-C02.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,6 +22,7 @@
                     </div>
                     <h1>Pratique para sua certificação AWS</h1>
                     <p>Escolha uma prova, configure o número de questões e comece.</p>
+                    <button id="btn-show-progress" class="btn-secondary" style="margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 8px;"><i class="ph ph-chart-line-up"></i> Ver Evolução</button>
                 </header>
 
                 <p class="cert-section-title">Certificações</p>
@@ -204,6 +206,17 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- PROGRESS -->
+        <section id="progress-screen" class="screen">
+            <header class="review-header">
+                <button id="btn-back-home-from-progress" class="btn-sm btn-outline"><i class="ph ph-arrow-left"></i> Voltar</button>
+                <h2>Sua Evolução</h2>
+            </header>
+            <div id="progress-content" class="progress-content">
+                <div id="progress-list" class="progress-list"></div>
             </div>
         </section>
 

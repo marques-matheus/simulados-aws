@@ -41,6 +41,20 @@
     localStorage.setItem(getHistoryKey(cert), JSON.stringify(history));
   }
 
+  function getPerformanceHistory(cert) {
+    try {
+      const raw = localStorage.getItem('performance_history_' + cert);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  function savePerformanceHistory(cert, perfObj) {
+    const history = getPerformanceHistory(cert);
+    history.push(perfObj);
+    localStorage.setItem('performance_history_' + cert, JSON.stringify(history));
+  }
+
+
   function getRecentlyUsedIds(cert) {
     const history = getExamHistory(cert);
     const ids = new Set();
@@ -53,7 +67,8 @@
     home: document.getElementById('home-screen'),
     exam: document.getElementById('exam-screen'),
     result: document.getElementById('result-screen'),
-    review: document.getElementById('review-screen')
+    review: document.getElementById('review-screen'),
+    progress: document.getElementById('progress-screen')
   };
 
   function showScreen(name) {
@@ -466,6 +481,19 @@
     const title = document.getElementById('result-title');
     const sub = document.getElementById('result-subtitle');
     const passingScore = 70;
+    
+    // Save to performance history
+    const perfObj = {
+      date: new Date().toISOString(),
+      score: pct,
+      correct: correct,
+      wrong: wrong,
+      skipped: skipped,
+      total: examQuestions.length,
+      timeTaken: elapsedSeconds
+    };
+    savePerformanceHistory(config.cert, perfObj);
+
     if (pct >= passingScore) {
       icon.innerHTML = '<i class="ph ph-trophy"></i>';
       title.textContent = 'Aprovado!';
@@ -515,6 +543,16 @@
   document.getElementById('btn-new-exam').addEventListener('click', () => showScreen('home'));
   document.getElementById('btn-home-from-review').addEventListener('click', () => showScreen('home'));
   document.getElementById('btn-back-result').addEventListener('click', () => showScreen('result'));
+  
+  if(document.getElementById('btn-show-progress')) {
+    document.getElementById('btn-show-progress').addEventListener('click', () => {
+      renderProgress();
+      showScreen('progress');
+    });
+  }
+  if(document.getElementById('btn-back-home-from-progress')) {
+    document.getElementById('btn-back-home-from-progress').addEventListener('click', () => showScreen('home'));
+  }
 
   document.querySelectorAll('.btn-filter').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -565,6 +603,113 @@
       list.appendChild(item);
     });
   }
+
+  let activeCharts = {};
+
+  // Progress Render
+  function renderProgress() {
+    const list = document.getElementById('progress-list');
+    if (!list) return;
+    list.innerHTML = '';
+    let hasAny = false;
+    
+    // Destroy previous charts to prevent memory leaks
+    Object.values(activeCharts).forEach(chart => chart.destroy());
+    activeCharts = {};
+
+    
+    Object.keys(CERT_META).forEach((cert, idx) => {
+      const history = getPerformanceHistory(cert);
+      if (!history || history.length === 0) return;
+      hasAny = true;
+      
+      const group = document.createElement('div');
+      group.className = 'progress-cert-group';
+      group.style.animationDelay = (idx * 0.05) + 's';
+      
+      let itemsHtml = '';
+      [...history].reverse().forEach(h => {
+        const d = new Date(h.date);
+        const dateStr = d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        const isPass = h.score >= 70;
+        const scoreClass = isPass ? 'pass' : 'fail';
+        
+        itemsHtml += `
+          <div class="progress-item">
+            <div class="progress-item-left">
+              <span class="progress-date">${dateStr}</span>
+              <div class="progress-details">
+                <span title="Tempo"><i class="ph ph-timer"></i> ${formatTime(h.timeTaken || 0)}</span>
+                <span title="Corretas"><i class="ph ph-check" style="color:var(--green)"></i> ${h.correct}</span>
+                <span title="Erradas"><i class="ph ph-x" style="color:var(--red)"></i> ${h.wrong}</span>
+                <span title="Total">Total: ${h.total}</span>
+              </div>
+            </div>
+            <div class="progress-score ${scoreClass}">${h.score}%</div>
+          </div>
+        `;
+      });
+      
+      group.innerHTML = `
+        <div class="progress-cert-header">
+          <h3>${CERT_META[cert].name}</h3>
+          <span class="cert-badge">${cert}</span>
+        </div>
+        <div style="padding: 1.5rem 1.5rem 0; border-bottom: 1px solid var(--border);">
+            <canvas id="chart-${cert}" style="max-height: 200px; width: 100%;"></canvas>
+        </div>
+        <div class="progress-items">${itemsHtml}</div>
+      `;
+      list.appendChild(group);
+
+      // Render Chart
+      const ctx = document.getElementById(`chart-${cert}`).getContext('2d');
+      const chartLabels = history.map((h, i) => 'Tentativa ' + (i+1));
+      const chartData = history.map(h => h.score);
+
+      activeCharts[cert] = new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: chartLabels,
+              datasets: [{
+                  label: 'Score (%)',
+                  data: chartData,
+                  borderColor: CERT_META[cert].color,
+                  backgroundColor: CERT_META[cert].color + '33',
+                  borderWidth: 2,
+                  pointBackgroundColor: CERT_META[cert].color,
+                  pointBorderColor: '#fff',
+                  pointRadius: 4,
+                  fill: true,
+                  tension: 0.3
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                  y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } },
+                  x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+              },
+              plugins: {
+                  legend: { display: false },
+                  tooltip: { callbacks: { label: function(context) { return context.parsed.y + '%'; } } }
+              }
+          }
+      });
+    });
+    
+    if (!hasAny) {
+      list.innerHTML = `
+        <div class="progress-empty">
+          <i class="ph ph-chart-line-down"></i>
+          <p>Você ainda não concluiu nenhum simulado.</p>
+          <p style="font-size: 0.85rem; margin-top: 0.5rem;">Faça um simulado para começar a acompanhar sua evolução.</p>
+        </div>
+      `;
+    }
+  }
+
 
   // Export Features
   const modal = document.getElementById('export-modal');
