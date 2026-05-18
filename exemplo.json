@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "pergunta": "Um usuário precisa implantar rapidamente um banco de dados não relacional na AWS. O usuário não deseja gerenciar o hardware subjacente ou o software de banco de dados. Qual serviço AWS pode ser usado para fazer isso?",
+    "opcoes": [
+      "Amazon Neptune",
+      "Amazon Redshift",
+      "Amazon DynamoDB",
+      "Amazon RDS"
+    ],
+    "respostas_corretas": [
+      "Amazon DynamoDB"
+    ],
+    "explicacao": "O Amazon DynamoDB é um banco de dados de chave-valor NoSQL totalmente gerenciado que permite aos usuários implantar bancos de dados não relacionais rapidamente e sem a necessidade de gerenciar o hardware subjacente ou o software de banco de dados."
+  },
+  {
+    "id": 2,
+    "pergunta": "Uma empresa precisa contratar consultores terceirizados para ajudar a manter e dar suporte ao seu ambiente AWS e às necessidades de negócios da empresa. Qual serviço ou recurso da AWS atenderá a esses requisitos?",
+    "opcoes": [
+      "AWS Support",
+      "AWS Partner Network (APN)",
+      "AWS Service Catalog",
+      "AWS Organizations"
+    ],
+    "respostas_corretas": [
+      "AWS Partner Network (APN)"
+    ],
+    "explicacao": "A AWS Partner Network (APN) é o programa de parceiros da AWS que conecta empresas com consultores terceirizados e parceiros de serviços aprovados pela AWS."
+  },
+  {
+    "id": 3,
+    "pergunta": "Uma empresa implantou uma instância do Amazon EC2. Qual opção é uma responsabilidade da AWS no modelo de responsabilidade compartilhada da AWS?",
+    "opcoes": [
+      "Gerenciando e criptografando dados de aplicativos",
+      "Instalação de atualizações e patches de segurança do sistema operacional convidado",
+      "Configuração de dispositivos de infraestrutura",
+      "Configuração de grupos de segurança em cada instância"
+    ],
+    "respostas_corretas": [
+      "Configuração de dispositivos de infraestrutura"
+    ],
+    "explicacao": "No modelo de responsabilidade compartilhada da AWS, a AWS é responsável pela infraestrutura na nuvem que fornece os serviços, incluindo a configuração e manutenção de dispositivos de infraestrutura, como redes, roteadores, switches, racks de servidores, cabos, etc."
+  },
+  {
+    "id": 4,
+    "pergunta": "Qual serviço da AWS uma empresa pode usar para projetar e criar visualmente aplicativos sem servidor?",
+    "opcoes": [
+      "AWS Batch",
+      "AWS App Runner",
+      "AWS Application Composer",
+      "AWS Lambda"
+    ],
+    "respostas_corretas": [
+      "AWS Application Composer"
+    ],
+    "explicacao": "AWS Application Composer: é um serviço de design visual de baixo código que permite criar aplicativos sem servidor com rapidez. Ele fornece uma interface de design visual arrastar e soltar para combinar componentes AWS prontos para uso."
+  },
+  {
+    "id": 5,
+    "pergunta": "Um usuário tem conhecimento limitado dos serviços da AWS, mas deseja implantar rapidamente um aplicativo Node.js escalonável na Nuvem AWS. Qual serviço deve ser usado para implantar o aplicativo?",
+    "opcoes": [
+      "AWS CloudFormation",
+      "Amazon EC2",
+      "AWS Elastic Beanstalk",
+      "AWS OpsWorks"
+    ],
+    "respostas_corretas": [
+      "AWS Elastic Beanstalk"
+    ],
+    "explicacao": "O AWS Elastic Beanstalk é um serviço de implantação e dimensionamento de aplicativos que facilita o processo de implantação de aplicativos e serviços web na infraestrutura da AWS. Ele abstrai a complexidade da configuração de recursos."
+  }
+]

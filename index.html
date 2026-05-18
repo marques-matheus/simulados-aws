@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulados AWS</title>
+    <meta name="description" content="Simulados para certificações AWS: CLF-C02, DVA-C02, SAA-C03, SCS-C02, SOA-C02 e SAP-C02.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- HOME -->
+        <section id="home-screen" class="screen active">
+            <div class="home-layout">
+                <header class="home-header">
+                    <div class="logotype">
+                        <div class="logo-mark">S</div>
+                        <div class="logo-text">simulados <span>aws</span></div>
+                    </div>
+                    <h1>Pratique para sua certificação AWS</h1>
+                    <p>Escolha uma prova, configure o número de questões e comece.</p>
+                </header>
+
+                <p class="cert-section-title">Certificações</p>
+                <div class="cert-list" id="cert-grid">
+                    <button class="cert-card" data-cert="CLF-C02" id="cert-clf">
+                        <div class="cert-icon">☁️</div>
+                        <div class="cert-info">
+                            <span class="cert-level foundational">Foundational</span>
+                            <h3>Cloud Practitioner</h3>
+                            <span class="cert-code">CLF-C02</span>
+                        </div>
+                        <span class="cert-count" id="count-CLF-C02">0</span>
+                    </button>
+                    <button class="cert-card" data-cert="SAA-C03" id="cert-saa">
+                        <div class="cert-icon">🏗️</div>
+                        <div class="cert-info">
+                            <span class="cert-level associate">Associate</span>
+                            <h3>Solutions Architect</h3>
+                            <span class="cert-code">SAA-C03</span>
+                        </div>
+                        <span class="cert-count" id="count-SAA-C03">0</span>
+                    </button>
+                    <button class="cert-card" data-cert="DVA-C02" id="cert-dva">
+                        <div class="cert-icon">💻</div>
+                        <div class="cert-info">
+                            <span class="cert-level associate">Associate</span>
+                            <h3>Developer</h3>
+                            <span class="cert-code">DVA-C02</span>
+                        </div>
+                        <span class="cert-count" id="count-DVA-C02">0</span>
+                    </button>
+                    <button class="cert-card" data-cert="SOA-C02" id="cert-soa">
+                        <div class="cert-icon">⚙️</div>
+                        <div class="cert-info">
+                            <span class="cert-level associate">Associate</span>
+                            <h3>CloudOps Engineer</h3>
+                            <span class="cert-code">SOA-C03</span>
+                        </div>
+                        <span class="cert-count" id="count-SOA-C02">0</span>
+                    </button>
+                    <button class="cert-card" data-cert="SCS-C02" id="cert-scs">
+                        <div class="cert-icon">🔐</div>
+                        <div class="cert-info">
+                            <span class="cert-level specialty">Specialty</span>
+                            <h3>Security</h3>
+                            <span class="cert-code">SCS-C02</span>
+                        </div>
+                        <span class="cert-count" id="count-SCS-C02">0</span>
+                    </button>
+                    <button class="cert-card" data-cert="SAP-C02" id="cert-sap">
+                        <div class="cert-icon">🏛️</div>
+                        <div class="cert-info">
+                            <span class="cert-level professional">Professional</span>
+                            <h3>Solutions Architect Pro</h3>
+                            <span class="cert-code">SAP-C02</span>
+                        </div>
+                        <span class="cert-count" id="count-SAP-C02">0</span>
+                    </button>
+                </div>
+
+                <!-- CONFIG -->
+                <div class="exam-config" id="exam-config" style="display:none">
+                    <div class="config-header">
+                        <h2 id="config-title">Configurar</h2>
+                        <button id="btn-change-cert" class="btn-sm btn-outline">← Voltar</button>
+                    </div>
+                    <div class="config-options">
+                        <div class="config-group">
+                            <label>Questões</label>
+                            <div class="btn-group" id="qty-group">
+                                <button class="btn-option" data-value="15">15</button>
+                                <button class="btn-option active" data-value="30">30</button>
+                                <button class="btn-option" data-value="65">65</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-stats" id="config-stats"></div>
+                    <button id="btn-start" class="btn-primary">Iniciar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- EXAM -->
+        <section id="exam-screen" class="screen">
+            <header class="exam-header">
+                <div class="exam-header-left">
+                    <button id="btn-cancel-exam" title="Sair do Simulado" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.2rem;margin-right:12px;padding:0;display:flex;align-items:center;">←</button>
+                    <span class="exam-logo" id="exam-cert-label">AWS</span>
+                    <span id="exam-progress" class="exam-progress">1 / 30</span>
+                </div>
+                <div class="exam-header-center">
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="exam-header-right">
+                    <span id="exam-timer" class="exam-timer">⏱ 00:00</span>
+                    <button id="btn-finish-early" class="btn-sm btn-outline">Finalizar</button>
+                </div>
+            </header>
+            <main class="exam-body">
+                <div class="question-container">
+                    <div class="question-meta">
+                        <span id="q-cert" class="tag tag-cert">CLF-C02</span>
+                    </div>
+                    <h2 id="q-text" class="question-text"></h2>
+                    <div id="q-options" class="options-list"></div>
+                    <div class="question-nav">
+                        <button id="btn-prev" class="btn-secondary" disabled>← Anterior</button>
+                        <div class="question-dots" id="question-dots"></div>
+                        <button id="btn-next" class="btn-primary" style="width:auto;display:inline-block">Próxima →</button>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- RESULT -->
+        <section id="result-screen" class="screen">
+            <div class="result-container">
+                <div class="result-header">
+                    <div id="result-icon" class="result-icon">🏆</div>
+                    <h1 id="result-title" class="result-title">Resultado</h1>
+                    <p id="result-subtitle" class="result-subtitle"></p>
+                </div>
+                <div class="score-circle-wrap">
+                    <svg class="score-circle" viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="90" class="score-bg"/>
+                        <circle cx="100" cy="100" r="90" class="score-fg" id="score-fg"/>
+                    </svg>
+                    <div class="score-value" id="score-value">0%</div>
+                </div>
+                <div class="result-stats">
+                    <div class="stat"><span class="stat-num" id="stat-correct">0</span><span class="stat-label">Corretas</span></div>
+                    <div class="stat"><span class="stat-num" id="stat-wrong">0</span><span class="stat-label">Erradas</span></div>
+                    <div class="stat"><span class="stat-num" id="stat-skip">0</span><span class="stat-label">Puladas</span></div>
+                    <div class="stat"><span class="stat-num" id="stat-time">00:00</span><span class="stat-label">Tempo</span></div>
+                </div>
+                <div class="result-actions">
+                    <button id="btn-review" class="btn-primary" style="width:auto;display:inline-block">Revisar Respostas</button>
+                    <button id="btn-export-errors" class="btn-secondary" style="width:auto;display:inline-block">Exportar Erros 📥</button>
+                    <button id="btn-new-exam" class="btn-secondary">Novo Simulado</button>
+                </div>
+                
+                <!-- Export Modal -->
+                <div id="export-modal" class="modal-overlay" style="display:none;">
+                    <div class="modal-content">
+                        <h3>Exportar Erros</h3>
+                        <p>Escolha o formato para baixar as questões que você errou ou pulou:</p>
+                        <div class="modal-actions" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                            <button id="btn-export-prompt" class="btn-primary">🤖 Gerar Prompt para IA (Copiar)</button>
+                            <button id="btn-export-csv" class="btn-primary">📊 Planilha (CSV)</button>
+                            <button id="btn-export-anki" class="btn-primary">🗂️ Flashcards (Anki TSV)</button>
+                            <button id="btn-close-export" class="btn-outline" style="margin-top: 10px;">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- REVIEW -->
+        <section id="review-screen" class="screen">
+            <header class="review-header">
+                <button id="btn-back-result" class="btn-sm btn-outline">← Voltar</button>
+                <h2>Revisão</h2>
+                <span id="review-filter-label"></span>
+            </header>
+            <div class="review-filters">
+                <button class="btn-filter active" data-filter="all">Todas</button>
+                <button class="btn-filter" data-filter="correct">Corretas</button>
+                <button class="btn-filter" data-filter="wrong">Erradas</button>
+                <button class="btn-filter" data-filter="skipped">Puladas</button>
+            </div>
+            <div id="review-list" class="review-list"></div>
+            <div class="review-bottom">
+                <button id="btn-home-from-review" class="btn-primary" style="width:auto;display:inline-block">Novo Simulado</button>
+            </div>
+        </section>
+    </div>
+    <script src="questoes_data.js"></script>
+    <script src="questions.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
