@@ -1,6 +1,6 @@
 (function(){
   // State
-  let config = { cert: null, qty: 30 };
+  let config = { cert: null, qty: 30, trainingMode: false };
   let examQuestions = [];
   let answers = {};
   let currentIdx = 0;
@@ -145,6 +145,8 @@
       return;
     }
 
+    config.trainingMode = document.getElementById('training-mode-toggle') ? document.getElementById('training-mode-toggle').checked : false;
+
     // Anti-repeat: prioritize fresh questions
     const recentIds = getRecentlyUsedIds(config.cert);
     const fresh = shuffle(pool.filter(q => !recentIds.has(q.id)));
@@ -205,6 +207,15 @@
     });
   }
 
+  function isAnswerComplete(q, userAns) {
+    if (userAns === undefined) return false;
+    if (Array.isArray(q.correct)) {
+      if (!Array.isArray(userAns)) return false;
+      return userAns.length === q.correct.length;
+    }
+    return true;
+  }
+
   // Format text helper
   function formatText(text) {
     if (!text) return '';
@@ -237,6 +248,9 @@
     const isMulti = Array.isArray(q.correct);
     const multiCount = isMulti ? q.correct.length : 0;
 
+    const isComplete = config.trainingMode && isAnswerComplete(q, answers[currentIdx]);
+    const correctSet = isMulti ? q.correct : [q.correct];
+
     // Show hint for multi-answer questions
     if (isMulti && multiCount > 1) {
       const hint = document.createElement('p');
@@ -255,8 +269,19 @@
         isSelected = answers[currentIdx] === i;
       }
       btn.className = 'option-btn' + (isSelected ? ' selected' : '');
+      
+      if (isComplete) {
+        if (correctSet.includes(i)) {
+          btn.classList.add('is-correct-train');
+        } else if (isSelected && !correctSet.includes(i)) {
+          btn.classList.add('is-wrong-train');
+        }
+        btn.style.cursor = 'default';
+      }
+
       btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span class="option-text">${formatText(opt)}</span>`;
       btn.addEventListener('click', () => {
+        if (isComplete) return;
         if (isMulti) {
           let arr = answers[currentIdx] ? [...answers[currentIdx]] : [];
           if (arr.includes(i)) {
@@ -272,6 +297,14 @@
       });
       optContainer.appendChild(btn);
     });
+
+    if (isComplete) {
+      const expDiv = document.createElement('div');
+      expDiv.className = 'ri-explanation';
+      expDiv.style.marginTop = '1.5rem';
+      expDiv.innerHTML = `<strong>Explicação:</strong><br><br>${formatText(q.explanation)}`;
+      optContainer.appendChild(expDiv);
+    }
 
     // Progress
     document.getElementById('exam-progress').textContent = `${currentIdx + 1} / ${examQuestions.length}`;
@@ -549,6 +582,7 @@
       const idx = parseInt(e.key) - 1;
       if (idx < examQuestions[currentIdx].options.length) {
         const q = examQuestions[currentIdx];
+        if (config.trainingMode && isAnswerComplete(q, answers[currentIdx])) return;
         const isMulti = Array.isArray(q.correct);
         if (isMulti) {
           let arr = answers[currentIdx] ? [...answers[currentIdx]] : [];

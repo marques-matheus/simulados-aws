@@ -411,3 +411,68 @@ code.aws-resource, code.aws-action, code.aws-inline {
     color: var(--text-secondary);
     font-size: 0.95rem;
 }
+
+/* ===== TOGGLE SWITCH ===== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--border-light);
+  transition: .3s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text);
+  transition: .3s;
+}
+input:checked + .slider {
+  background-color: var(--orange);
+}
+input:checked + .slider:before {
+  transform: translateX(18px);
+  background-color: #000;
+}
+.slider.round {
+  border-radius: 24px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* ===== TRAINING MODE STATES ===== */
+.option-btn.is-correct-train {
+  background: var(--green-dim) !important;
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+}
+.option-btn.is-correct-train .option-letter {
+  background: var(--green) !important;
+  color: #000 !important;
+  border-color: var(--green) !important;
+}
+.option-btn.is-wrong-train {
+  background: var(--red-dim) !important;
+  border-color: var(--red) !important;
+  color: var(--red) !important;
+}
+.option-btn.is-wrong-train .option-letter {
+  background: var(--red) !important;
+  color: #000 !important;
+  border-color: var(--red) !important;
+}
