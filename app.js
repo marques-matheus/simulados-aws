@@ -609,6 +609,65 @@
     document.getElementById('stat-skip').textContent = skipped;
     document.getElementById('stat-time').textContent = formatTime(elapsedSeconds);
 
+    // Diagnóstico de Desempenho por Domínio AWS
+    const domainStats = {};
+    examQuestions.forEach((q, i) => {
+      const isCorrect = !isAnswerEmpty(answers[i]) && isAnswerCorrect(q, answers[i]);
+      if (q.temas && Array.isArray(q.temas)) {
+        q.temas.forEach(domain => {
+          if (!domainStats[domain]) {
+            domainStats[domain] = { total: 0, correct: 0 };
+          }
+          domainStats[domain].total++;
+          if (isCorrect) {
+            domainStats[domain].correct++;
+          }
+        });
+      }
+    });
+
+    const domainsAnalysisContainer = document.getElementById('result-domains-analysis');
+    const domainsAnalysisList = document.getElementById('domains-analysis-list');
+    if (domainsAnalysisContainer && domainsAnalysisList) {
+      domainsAnalysisList.innerHTML = '';
+      const domainKeys = Object.keys(domainStats).sort();
+      if (domainKeys.length > 0) {
+        domainsAnalysisContainer.style.display = 'block';
+        domainKeys.forEach(domain => {
+          const stats = domainStats[domain];
+          const domainPct = Math.round((stats.correct / stats.total) * 100);
+          
+          let colorClass = 'domain-fail';
+          if (domainPct >= 75) {
+            colorClass = 'domain-pass';
+          } else if (domainPct >= 50) {
+            colorClass = 'domain-warning';
+          }
+          
+          const domainRow = document.createElement('div');
+          domainRow.className = 'domain-analysis-row';
+          domainRow.innerHTML = `
+            <div class="domain-info-row">
+              <span class="domain-name" title="${domain}">${domain}</span>
+              <span class="domain-score-text ${colorClass}">${stats.correct}/${stats.total} (${domainPct}%)</span>
+            </div>
+            <div class="domain-bar-container">
+              <div class="domain-bar ${colorClass}" style="width: 0%"></div>
+            </div>
+          `;
+          domainsAnalysisList.appendChild(domainRow);
+          
+          // Micro-animação de preenchimento das barras
+          setTimeout(() => {
+            const bar = domainRow.querySelector('.domain-bar');
+            if (bar) bar.style.width = domainPct + '%';
+          }, 100);
+        });
+      } else {
+        domainsAnalysisContainer.style.display = 'none';
+      }
+    }
+
     showScreen('result');
   }
 

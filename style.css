@@ -540,3 +540,91 @@ select#theme-select option {
 .progress-empty { text-align: center; padding: 4rem 1rem; color: var(--text-secondary); background: var(--bg-raised); border: 1px dashed var(--border); border-radius: var(--radius-lg); }
 .progress-empty i { font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; opacity: 0.5; }
 .progress-empty p { font-size: 0.95rem; }
+
+/* ===== DOMAINS ANALYSIS (RESULTS) ===== */
+.domains-analysis-container {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  text-align: left;
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.domains-analysis-container h3 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.domains-analysis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.domain-analysis-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.domain-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.domain-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.domain-score-text {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.domain-score-text.domain-pass {
+  color: var(--green);
+}
+.domain-score-text.domain-warning {
+  color: var(--cyan);
+}
+.domain-score-text.domain-fail {
+  color: var(--red);
+}
+.domain-bar-container {
+  height: 6px;
+  background: var(--bg-inset);
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+.domain-bar {
+  height: 100%;
+  border-radius: 4px;
+  width: 0%; /* Initial state for animation */
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.domain-bar.domain-pass {
+  background: linear-gradient(90deg, var(--green), #34d399);
+  box-shadow: 0 0 10px rgba(16,185,129,0.3);
+}
+.domain-bar.domain-warning {
+  background: linear-gradient(90deg, var(--cyan), #22d3ee);
+  box-shadow: 0 0 10px rgba(6,182,212,0.3);
+}
+.domain-bar.domain-fail {
+  background: linear-gradient(90deg, var(--red), #f87171);
+  box-shadow: 0 0 10px rgba(239,68,68,0.3);
+}
