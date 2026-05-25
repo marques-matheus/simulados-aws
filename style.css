@@ -212,7 +212,7 @@ a { color: var(--blue); text-decoration: none; }
 }
 .config-stats p { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem; }
 
-.btn-group { display: flex; gap: 8px; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-option {
   flex: 1; padding: 0.6rem;
   background: var(--bg-inset);
