@@ -97,28 +97,57 @@
       // Lazy Load Questions
       if (!QUESTIONS[cert]) {
         document.getElementById('loading-overlay').style.display = 'flex';
+        let loadedData = null;
+
+        // Método 1: Carregamento por tag script para compatibilidade com file:// (sem erros de CORS)
         try {
-          const res = await fetch(`data/${cert}.json`);
-          if (!res.ok) throw new Error('File not found');
-          const rawData = await res.json();
-          QUESTIONS[cert] = rawData.map(q => {
-            const correctIndices = q.respostas_corretas
-              .map(r => q.opcoes.indexOf(r))
-              .filter(i => i !== -1);
-            return {
-              id: q.id,
-              cert: cert,
-              question: q.pergunta,
-              options: q.opcoes,
-              correct: correctIndices.length === 1 ? correctIndices[0] : correctIndices,
-              explanation: q.explicacao
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = `data/${cert}.js`;
+            script.onload = () => {
+              if (window.LOADED_QUESTIONS && window.LOADED_QUESTIONS[cert]) {
+                loadedData = window.LOADED_QUESTIONS[cert];
+                delete window.LOADED_QUESTIONS[cert];
+                resolve();
+              } else {
+                reject(new Error('Dados não encontrados no script carregado'));
+              }
             };
+            script.onerror = () => reject(new Error('Erro ao carregar o script'));
+            document.body.appendChild(script);
           });
-        } catch (e) {
+        } catch (scriptErr) {
+          console.warn(`Carregamento por script falhou para ${cert}, tentando fetch como fallback:`, scriptErr);
+          // Método 2: Fallback para fetch tradicional (para servidores locais / ambientes HTTP)
+          try {
+            const res = await fetch(`data/${cert}.json`);
+            if (!res.ok) throw new Error('Não foi possível ler o arquivo JSON');
+            loadedData = await res.json();
+          } catch (fetchErr) {
+            console.error(`Fetch falhou para ${cert}:`, fetchErr);
+          }
+        }
+
+        if (!loadedData) {
           document.getElementById('loading-overlay').style.display = 'none';
-          alert('Não foi possível carregar as questões desta certificação. Verifique se o arquivo existe em data/' + cert + '.json');
+          alert('Não foi possível carregar as questões desta certificação. Verifique se o arquivo existe em data/' + cert + '.js ou data/' + cert + '.json');
           return;
         }
+
+        QUESTIONS[cert] = loadedData.map(q => {
+          const correctIndices = q.respostas_corretas
+            .map(r => q.opcoes.indexOf(r))
+            .filter(i => i !== -1);
+          return {
+            id: q.id,
+            cert: cert,
+            question: q.pergunta,
+            options: q.opcoes,
+            correct: correctIndices.length === 1 ? correctIndices[0] : correctIndices,
+            explanation: q.explicacao,
+            temas: q.temas || [] // FIX: Mapeia temas para habilitar filtros por domínio!
+          };
+        });
         document.getElementById('loading-overlay').style.display = 'none';
         
         // Update count dynamically
@@ -140,11 +169,49 @@
       configEl.style.display = 'block';
       document.getElementById('config-title').textContent = CERT_META[cert].name;
 
+      // Populate Theme/Domain Dropdown dynamically based on the current certification's domains!
+      const themeSelect = document.getElementById('theme-select');
+      let activeThemeSelect = themeSelect;
+      if (themeSelect) {
+        const uniqueThemes = new Set();
+        pool.forEach(q => {
+          if (q.temas && Array.isArray(q.temas)) {
+            q.temas.forEach(t => uniqueThemes.add(t));
+          }
+        });
+        const sortedThemes = Array.from(uniqueThemes).sort();
+
+        // Clone with false (do not clone children) to clear and remove old event listeners
+        const newThemeSelect = themeSelect.cloneNode(false);
+        newThemeSelect.innerHTML = '<option value="Todos">Todos (Simulado Completo)</option>';
+        sortedThemes.forEach(theme => {
+          const opt = document.createElement('option');
+          opt.value = theme;
+          opt.textContent = theme;
+          newThemeSelect.appendChild(opt);
+        });
+        themeSelect.parentNode.replaceChild(newThemeSelect, themeSelect);
+        activeThemeSelect = newThemeSelect;
+      }
+
       // Show stats
-      const recentIds = getRecentlyUsedIds(cert);
-      const freshCount = pool.filter(q => !recentIds.has(q.id)).length;
-      const statsEl = document.getElementById('config-stats');
-      statsEl.innerHTML = `<p>${pool.length} questões disponíveis · ${freshCount} novas para você</p>`;
+      function updateConfigStats() {
+        let currentPool = QUESTIONS[cert] || [];
+        const selectedTheme = activeThemeSelect ? activeThemeSelect.value : 'Todos';
+        if (selectedTheme !== 'Todos') {
+          currentPool = currentPool.filter(q => q.temas && q.temas.includes(selectedTheme));
+        }
+        const recentIds = getRecentlyUsedIds(cert);
+        const freshCount = currentPool.filter(q => !recentIds.has(q.id)).length;
+        const statsEl = document.getElementById('config-stats');
+        statsEl.innerHTML = `<p>${currentPool.length} questões disponíveis · ${freshCount} novas para você</p>`;
+      }
+      
+      updateConfigStats();
+      
+      if (activeThemeSelect) {
+        activeThemeSelect.addEventListener('change', updateConfigStats);
+      }
 
       // Scroll to config
       configEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -185,10 +252,20 @@
       alert('Selecione uma certificação primeiro.');
       return;
     }
-    const pool = [...(QUESTIONS[config.cert] || [])];
+    const selectedTheme = document.getElementById('theme-select') ? document.getElementById('theme-select').value : 'Todos';
+    let pool = [...(QUESTIONS[config.cert] || [])];
+    
+    if (selectedTheme !== 'Todos') {
+      pool = pool.filter(q => q.temas && q.temas.includes(selectedTheme));
+    }
+
     const needed = Math.min(config.qty, pool.length);
     if (needed === 0) {
-      alert('Nenhuma questão disponível para esta certificação.');
+      if (selectedTheme !== 'Todos') {
+        alert('Nenhuma questão disponível para este tema nesta certificação.');
+      } else {
+        alert('Nenhuma questão disponível para esta certificação.');
+      }
       return;
     }
 
