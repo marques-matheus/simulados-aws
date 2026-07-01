@@ -2,7 +2,14 @@ name: Deploy to S3 and CloudFront
 on:
   push:
     branches:
-      - main  # Trigger on pushes to main branch
+      - main
+    paths:
+      - 'infra/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
 
 permissions:
   id-token: write # Required for OIDC
