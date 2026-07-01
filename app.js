@@ -1,4 +1,78 @@
+
 (function(){
+
+  // --- INÍCIO DA INTEGRAÇÃO COM COGNITO ---
+  const COGNITO_LOGIN_URL = "https://auth-simulados-xyz987.auth.us-east-1.amazoncognito.com/login?client_id=50daima65crf7jcnj3cpji2cl&response_type=token&scope=email+openid+profile&redirect_uri=https://d1nv8jnyifu0hy.cloudfront.net/"; // Coloque a URL inteira aqui
+
+ function handleAuthentication() {
+    // 1. Captura o token da URL após o redirecionamento da AWS
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const idToken = params.get('id_token');
+
+    if (idToken) {
+      sessionStorage.setItem('aws_mentoria_token', idToken);
+      window.history.replaceState(null, null, window.location.pathname);
+    }
+
+    const token = sessionStorage.getItem('aws_mentoria_token');
+    
+    // 2. Cria dinamicamente o botão de Login/Logout no cabeçalho
+    let authBtn = document.getElementById('btn-auth');
+    if (!authBtn) {
+      authBtn = document.createElement('button');
+      authBtn.id = 'btn-auth';
+      authBtn.className = 'btn-primary';
+      authBtn.style.marginTop = '1.5rem';
+      authBtn.style.marginLeft = '10px';
+      authBtn.style.display = 'inline-flex';
+      authBtn.style.alignItems = 'center';
+      authBtn.style.gap = '8px';
+      
+      // Insere logo após o botão "Ver Evolução"
+      const progressBtn = document.getElementById('btn-show-progress');
+      if (progressBtn) {
+        progressBtn.parentNode.insertBefore(authBtn, progressBtn.nextSibling);
+      }
+    }
+
+    const btnStart = document.getElementById('btn-start');
+
+    // 3. Altera a interface com base no estado de login
+    if (!token) {
+      // Usuário Deslogado
+      authBtn.innerHTML = '<i class="ph ph-sign-in"></i> Fazer Login';
+      authBtn.onclick = () => window.location.href = COGNITO_LOGIN_URL;
+      
+      // Bloqueia o botão de iniciar o simulado
+      if (btnStart) {
+        btnStart.disabled = true;
+        btnStart.innerText = "Faça Login Primeiro";
+        btnStart.style.opacity = "0.5";
+        btnStart.style.cursor = "not-allowed";
+      }
+    } else {
+      // Usuário Logado
+      authBtn.innerHTML = '<i class="ph ph-sign-out"></i> Sair';
+      authBtn.className = 'btn-outline'; // Muda o estilo para ficar discreto
+      authBtn.onclick = () => {
+        sessionStorage.removeItem('aws_mentoria_token');
+        window.location.reload();
+      };
+      
+      // Libera o simulado
+      if (btnStart) {
+        btnStart.disabled = false;
+        btnStart.innerText = "Iniciar";
+        btnStart.style.opacity = "1";
+        btnStart.style.cursor = "pointer";
+      }
+    }
+  }
+
+  // Executa a verificação
+  handleAuthentication();
+  // --- FIM DA INTEGRAÇÃO COM COGNITO ---
   // State
   let config = { cert: null, qty: 30, trainingMode: false };
   const QUESTIONS = {};
