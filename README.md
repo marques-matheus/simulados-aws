@@ -23,10 +23,10 @@ O alicerce de infraestrutura e segurança da aplicação.
 
 Migração das questões estáticas para o banco de dados NoSQL.
 
-- [ ] **IaC do Banco:** Executar o `terraform apply` do módulo do DynamoDB (`Simulados_AWS` com `PAY_PER_REQUEST`).
-- [ ] **Estruturação dos Dados:** Revisar o arquivo JSON de origem para garantir que os atributos (ID, pergunta, opções, temas) estão limpos.
-- [ ] **Script de Carga (Python/Boto3):** Escrever e executar o script local para ler o JSON e injetar as questões na tabela via `BatchWriteItem`.
-- [ ] **Validação de Dados:** Confirmar via console se a Partition Key (`CERT#...`) e a Sort Key (`Q#...`) foram gravadas corretamente.
+- [x] **IaC do Banco:** Executar o `terraform apply` do módulo do DynamoDB (`Simulados_AWS` com `PAY_PER_REQUEST`).
+- [x] **Estruturação dos Dados:** Revisar o arquivo JSON de origem para garantir que os atributos (ID, pergunta, opções, temas) estão limpos.
+- [x] **Script de Carga (Python/Boto3):** Escrever e executar o script local para ler o JSON e injetar as questões na tabela via `BatchWriteItem`.
+- [x] **Validação de Dados:** Confirmar via console se a Partition Key (`CERT#...`) e a Sort Key (`Q#...`) foram gravadas corretamente.
 
 ---
 
