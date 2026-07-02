@@ -23,8 +23,8 @@ def lambda_handler(event, context):
 
         # 4. A trava de segurança: Ocultando o gabarito
         for questao in questoes_brutas:
-            if 'respostas_corretas' in questao:
-                del questao['respostas_corretas'] # Deleta a resposta da memória
+            # if 'respostas_corretas' in questao:
+            #     del questao['respostas_corretas'] # Deleta a resposta da memória
             
             questoes_limpas.append(questao)
 
