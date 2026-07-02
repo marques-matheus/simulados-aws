@@ -2,8 +2,19 @@
 (function(){
 
   // --- INÍCIO DA INTEGRAÇÃO COM COGNITO ---
-  const COGNITO_LOGIN_URL = "https://auth-simulados-xyz987.auth.us-east-1.amazoncognito.com/login?client_id=50daima65crf7jcnj3cpji2cl&response_type=token&scope=email+openid+profile&redirect_uri=https://d1nv8jnyifu0hy.cloudfront.net/"; // Coloque a URL inteira aqui
+// 1. Descobre automaticamente onde o código está rodando
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+// 2. Define o retorno baseado no ambiente
+const redirectUri = isLocalhost 
+    ? "http://localhost:5500/" 
+    : "https://d1nv8jnyifu0hy.cloudfront.net/";
+
+// 3. Monta a URL dinamicamente
+const clientId = "50daima65crf7jcnj3cpji2cl";
+const cognitoDomain = "https://auth-simulados-xyz987.auth.us-east-1.amazoncognito.com";
+
+const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response_type=token&scope=email+openid+profile&redirect_uri=${redirectUri}`;
  function handleAuthentication() {
     // 1. Captura o token da URL após o redirecionamento da AWS
     const hash = window.location.hash.substring(1);
@@ -194,7 +205,7 @@
           console.warn(`Carregamento por script falhou para ${cert}, tentando fetch como fallback:`, scriptErr);
           // Método 2: Fallback para fetch tradicional (para servidores locais / ambientes HTTP)
           try {
-            const res = await fetch(`data/${cert}.json`);
+            const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes`);
             if (!res.ok) throw new Error('Não foi possível ler o arquivo JSON');
             loadedData = await res.json();
           } catch (fetchErr) {

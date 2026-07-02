@@ -1,6 +1,20 @@
-# Terraform
+# Bloqueia Artefatos e Zips (A sua Lambda)
+*.zip
+
+# Bloqueia arquivos locais do Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
 crash.log
-.terraform.tfstate.lock.info
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Bloqueia lixos do Python
+__pycache__/
+*.py[cod]
+*$py.class
