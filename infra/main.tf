@@ -13,7 +13,10 @@ module "cognito_simulados" {
     "https://d1nv8jnyifu0hy.cloudfront.net/" # URL de produção
   ]
 }
-
+module "dynamodb_simulados" {
+  source     = "./modules/dynamodb"
+  table_name = "Simulados_AWS"
+}
 # Imprime a URL mágica de login no terminal quando o apply terminar
 output "url_de_login" {
   value = module.cognito_simulados.login_url
