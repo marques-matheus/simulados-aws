@@ -184,47 +184,46 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
         document.getElementById('loading-overlay').style.display = 'flex';
         let loadedData = null;
 
-        // Método 1: Carregamento por tag script para compatibilidade com file:// (sem erros de CORS)
-        try {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = `data/${cert}.js`;
-            script.onload = () => {
-              if (window.LOADED_QUESTIONS && window.LOADED_QUESTIONS[cert]) {
-                loadedData = window.LOADED_QUESTIONS[cert];
-                delete window.LOADED_QUESTIONS[cert];
-                resolve();
-              } else {
-                reject(new Error('Dados não encontrados no script carregado'));
-              }
-            };
-            script.onerror = () => reject(new Error('Erro ao carregar o script'));
-            document.body.appendChild(script);
-          });
-        } catch (scriptErr) {
-          console.warn(`Carregamento por script falhou para ${cert}, tentando fetch como fallback:`, scriptErr);
-          // Método 2: Fallback para fetch tradicional (para servidores locais / ambientes HTTP)
-          try {
-           const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes?prova=${cert}`);
-            if (!res.ok) throw new Error('Não foi possível ler o arquivo JSON');
+       try {
+            console.log(`Buscando questões da nuvem (API Gateway)...`);
+            
+            // Faz a chamada diretamente para a sua infraestrutura AWS
+            const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes?prova=${cert}`);
+            
+            if (!res.ok) {
+                throw new Error(`Erro na comunicação com a AWS: Status ${res.status}`);
+            }
+            
             loadedData = await res.json();
-          } catch (fetchErr) {
-            console.error(`Fetch falhou para ${cert}:`, fetchErr);
+            
+            
+        } catch (err) {
+            console.error("Falha catastrófica ao buscar questões na API:", err);
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert('Não foi possível carregar as questões da nuvem. Verifique a conexão com a API.');
+            return;
+        }
+
+        if (!loadedData || loadedData.length === 0) {
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert('A API retornou com sucesso, mas não encontrou questões para esta certificação no DynamoDB.');
+            return;
+        }
+
+        // 1. Correção de sintaxe: adicionando o .map()
+      QUESTIONS[cert] = loadedData.map(q => {
+          
+          let correctIndices = [];
+          
+          // 2. Proteção: Só tenta mapear a resposta se ela existir no JSON
+          if (q.respostas_corretas) {
+              correctIndices = q.respostas_corretas
+                .map(r => q.opcoes.indexOf(r))
+                .filter(i => i !== -1);
           }
-        }
 
-        if (!loadedData) {
-          document.getElementById('loading-overlay').style.display = 'none';
-          alert('Não foi possível carregar as questões desta certificação. Verifique se o arquivo existe em data/' + cert + '.js ou data/' + cert + '.json');
-          return;
-        }
-
-        QUESTIONS[cert] = loadedData.map(q => {
-          const correctIndices = q.respostas_corretas
-            .map(r => q.opcoes.indexOf(r))
-            .filter(i => i !== -1);
           return {
-            id: q.id,
+            id: q.SK || q.id, // O DynamoDB manda o ID na chave SK
             cert: cert,
             question: q.pergunta,
             options: q.opcoes,
@@ -232,12 +231,13 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
             explanation: q.explicacao,
             temas: q.temas || [] // FIX: Mapeia temas para habilitar filtros por domínio!
           };
-        });
-        document.getElementById('loading-overlay').style.display = 'none';
-        
-        // Update count dynamically
-        const el = document.getElementById('count-' + cert);
-        if (el) el.textContent = QUESTIONS[cert].length + ' questões';
+      });
+
+      document.getElementById('loading-overlay').style.display = 'none';
+      
+      // Update count dynamically
+      const el = document.getElementById('count-' + cert);
+      if (el) el.textContent = QUESTIONS[cert].length + ' questões';
       }
 
       const pool = QUESTIONS[cert] || [];

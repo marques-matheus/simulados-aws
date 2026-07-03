@@ -1,6 +1,14 @@
 import json
 import boto3
 from boto3.dynamodb.conditions import Key
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    """Converte Decimal do DynamoDB para int ou float no JSON."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return int(obj) if obj % 1 == 0 else float(obj)
+        return super().default(obj)
 
 # Conexão reaproveitada (Cold Start)
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -31,7 +39,7 @@ def lambda_handler(event, context):
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json'
             },
-            'body': json.dumps(questoes)
+            'body': json.dumps(questoes, cls=DecimalEncoder)
         }
 
     except Exception as erro:
