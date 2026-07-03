@@ -205,7 +205,7 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
           console.warn(`Carregamento por script falhou para ${cert}, tentando fetch como fallback:`, scriptErr);
           // Método 2: Fallback para fetch tradicional (para servidores locais / ambientes HTTP)
           try {
-            const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes`);
+           const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes?prova=${cert}`);
             if (!res.ok) throw new Error('Não foi possível ler o arquivo JSON');
             loadedData = await res.json();
           } catch (fetchErr) {
