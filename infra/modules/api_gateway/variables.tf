@@ -17,3 +17,13 @@ variable "cognito_client_id" {
   type        = string
   description = "Client ID do App Client do Cognito"
 }
+
+variable "lambda_corrigir_invoke_arn" {
+  type        = string
+  description = "ARN de invocação da Lambda CorrigirProva"
+}
+
+variable "lambda_corrigir_function_name" {
+  type        = string
+  description = "Nome da função Lambda CorrigirProva"
+}

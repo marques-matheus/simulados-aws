@@ -56,11 +56,39 @@ resource "aws_apigatewayv2_route" "get_questoes_route" {
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
-# 6. Dá permissão explícita para o API Gateway invocar a Lambda
+# 6. Dá permissão explícita para o API Gateway invocar a Lambda GetQuestoes
 resource "aws_lambda_permission" "api_gw_lambda" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
+
+# 7. Integração com a Lambda CorrigirProva
+resource "aws_apigatewayv2_integration" "lambda_corrigir_integration" {
+  api_id           = aws_apigatewayv2_api.http_api.id
+  integration_type = "AWS_PROXY"
+
+  integration_uri    = var.lambda_corrigir_invoke_arn
+  integration_method = "POST"
+}
+
+# 8. Rota protegida: POST /corrigir exige token JWT válido
+resource "aws_apigatewayv2_route" "post_corrigir_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /corrigir"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_corrigir_integration.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+}
+
+# 9. Permissão para o API Gateway invocar a Lambda CorrigirProva
+resource "aws_lambda_permission" "api_gw_corrigir" {
+  statement_id  = "AllowExecutionFromAPIGatewayCorrigir"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_corrigir_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }

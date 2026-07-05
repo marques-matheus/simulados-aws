@@ -31,14 +31,17 @@ module "api_gateway" {
   # Passa os outputs do Cognito para criar o JWT Authorizer
   cognito_user_pool_id = module.cognito_simulados.user_pool_id
   cognito_client_id    = module.cognito_simulados.client_id
+
+  # Nova Lambda de correção
+  lambda_corrigir_invoke_arn    = module.lambda_get_questoes.lambda_corrigir_invoke_arn
+  lambda_corrigir_function_name = module.lambda_get_questoes.lambda_corrigir_function_name
 }
 
-# Mostra a URL final direto no terminal quando o apply acabar
+# Mostra as URLs finais no terminal quando o apply acabar
 output "url_da_api" {
   value = "${module.api_gateway.api_url}/questoes"
 }
 
-# # Imprime a URL mágica de login no terminal quando o apply terminar
-# output "url_de_login" {
-#   value = module.cognito_simulados.login_url
-# }
+output "url_da_api_corrigir" {
+  value = "${module.api_gateway.api_url}/corrigir"
+}

@@ -117,7 +117,7 @@ simulados-aws/
 - `infra/main.tf` — passar os outputs do módulo Cognito para o módulo API Gateway
 - `app.js` — incluir `Authorization: Bearer ${token}` no `fetch` da função de carregamento de questões
 
-### ⏳ Passo 2 — Lambda de Correção (POST /corrigir)
+### ✅ Passo 2 — Lambda de Correção (POST /corrigir) ✅ IMPLEMENTADO
 **Objetivo:** Mover a lógica de correção para o backend. Frontend envia respostas, backend devolve resultado.  
 **Arquivos a criar/modificar:**
 - `backend/corrigir/lambda_function.py` — nova Lambda: recebe `{prova, respostas: {idx: opcao}}`, busca gabarito no DynamoDB, retorna `{score, corretas, erradas, detalhes[]}`
@@ -126,7 +126,7 @@ simulados-aws/
 - `infra/modules/lambda/variables.tf` e `outputs.tf` — exportar ARN da nova Lambda
 - `infra/modules/api_gateway/main.tf` — adicionar integração e rota `POST /corrigir`
 
-### ⏳ Passo 3 — Tela de Resultado no Frontend
+### ✅ Passo 3 — Tela de Resultado no Frontend ✅ IMPLEMENTADO
 **Objetivo:** `finishExam()` chama `POST /corrigir`, recebe o resultado do servidor e exibe na tela.  
 **Arquivos a modificar:**
 - `app.js` — `finishExam()` faz POST com as respostas do usuário; renderiza resultado com dados do backend (score, questões erradas, explicações)

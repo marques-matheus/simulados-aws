@@ -227,28 +227,19 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
             return;
         }
 
-        // 1. Correção de sintaxe: adicionando o .map()
-      QUESTIONS[cert] = loadedData.map(q => {
-          
-          let correctIndices = [];
-          
-          // 2. Proteção: Só tenta mapear a resposta se ela existir no JSON
-          if (q.respostas_corretas) {
-              correctIndices = q.respostas_corretas
-                .map(r => q.opcoes.indexOf(r))
-                .filter(i => i !== -1);
-          }
-
+        // Mapeia as questões — sem respostas_corretas (gabarito fica no backend)
+        // q.correct será preenchido após POST /corrigir ao final do simulado
+        QUESTIONS[cert] = loadedData.map(q => {
           return {
-            id: q.SK || q.id, // O DynamoDB manda o ID na chave SK
+            id: q.SK || q.id,
             cert: cert,
             question: q.pergunta,
             options: q.opcoes,
-            correct: correctIndices.length === 1 ? correctIndices[0] : correctIndices,
+            correct: undefined, // preenchido pelo backend após correção
             explanation: q.explicacao,
-            temas: q.temas || [] // FIX: Mapeia temas para habilitar filtros por domínio!
+            temas: q.temas || []
           };
-      });
+        });
 
       document.getElementById('loading-overlay').style.display = 'none';
       
@@ -440,6 +431,8 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
 
   function isAnswerComplete(q, userAns) {
     if (userAns === undefined) return false;
+    // Modo treino só mostra gabarito se q.correct já foi preenchido pelo backend
+    if (q.correct === undefined) return false;
     if (Array.isArray(q.correct)) {
       if (!Array.isArray(userAns)) return false;
       return userAns.length === q.correct.length;
@@ -489,13 +482,13 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     const optContainer = document.getElementById('q-options');
     optContainer.innerHTML = '';
     const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-    const isMulti = Array.isArray(q.correct);
+    const isMulti = Array.isArray(q.correct); // só true após correção do backend
     const multiCount = isMulti ? q.correct.length : 0;
 
     const isComplete = config.trainingMode && isAnswerComplete(q, answers[currentIdx]);
-    const correctSet = isMulti ? q.correct : [q.correct];
+    const correctSet = isMulti ? q.correct : (q.correct !== undefined ? [q.correct] : []);
 
-    // Show hint for multi-answer questions
+    // Mostra hint de multi-resposta apenas se já soubermos quantas são (após correção)
     if (isMulti && multiCount > 1) {
       const hint = document.createElement('p');
       hint.className = 'multi-hint';
@@ -598,15 +591,15 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
   document.getElementById('btn-prev').addEventListener('click', () => {
     if (currentIdx > 0) { currentIdx--; renderQuestion(); }
   });
-  document.getElementById('btn-next').addEventListener('click', () => {
+  document.getElementById('btn-next').addEventListener('click', async () => {
     if (currentIdx < examQuestions.length - 1) {
       currentIdx++;
       renderQuestion();
     } else {
-      finishExam();
+      await finishExam();
     }
   });
-  document.getElementById('btn-finish-early').addEventListener('click', () => {
+  document.getElementById('btn-finish-early').addEventListener('click', async () => {
     const unanswered = examQuestions.length - Object.keys(answers).filter(k => {
       const a = answers[k];
       return a !== undefined && !(Array.isArray(a) && a.length === 0);
@@ -614,7 +607,7 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     if (unanswered > 0) {
       if (!confirm(`Você tem ${unanswered} questão(ões) sem resposta. Deseja finalizar mesmo assim?`)) return;
     }
-    finishExam();
+    await finishExam();
   });
 
   // Cancel exam
@@ -625,14 +618,16 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     }
   });
 
-  // Answer checking helpers
+  // Answer checking helpers — ainda usados no modo treino (quando o gabarito vem do backend após correção)
   function isAnswerCorrect(q, userAns) {
     if (userAns === undefined) return false;
+    // Usa q.correct se disponível (preenchido após correção do backend)
+    if (q.correct === undefined || q.correct === null) return false;
     if (Array.isArray(q.correct)) {
       if (!Array.isArray(userAns)) return false;
       if (userAns.length !== q.correct.length) return false;
-      const sorted1 = [...userAns].sort();
-      const sorted2 = [...q.correct].sort();
+      const sorted1 = [...userAns].sort((a,b)=>a-b);
+      const sorted2 = [...q.correct].sort((a,b)=>a-b);
       return sorted1.every((v, i) => v === sorted2[i]);
     }
     return userAns === q.correct;
@@ -644,34 +639,104 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     return false;
   }
 
-  // Finish
-  function finishExam() {
-    clearInterval(timerInterval);
-    let correct = 0, wrong = 0, skipped = 0;
-    examQuestions.forEach((q, i) => {
-      if (isAnswerEmpty(answers[i])) { skipped++; }
-      else if (isAnswerCorrect(q, answers[i])) { correct++; }
-      else { wrong++; }
-    });
-    const pct = Math.round((correct / examQuestions.length) * 100);
+  // Constante da API
+  const API_BASE = 'https://j982dfso4f.execute-api.us-east-1.amazonaws.com';
 
-    // Result screen
-    const icon = document.getElementById('result-icon');
-    const title = document.getElementById('result-title');
-    const sub = document.getElementById('result-subtitle');
+  // Finish — envia respostas para o backend corrigir
+  async function finishExam() {
+    clearInterval(timerInterval);
+
+    // Monta o payload: { prova, questoes_ids, respostas }
+    const questoes_ids = examQuestions.map(q => q.id);
+    const respostas = {};
+    Object.keys(answers).forEach(idx => {
+      const ans = answers[idx];
+      if (!isAnswerEmpty(ans)) {
+        respostas[idx] = ans;
+      }
+    });
+
+    // Mostra loading na tela de resultado antes de exibir
+    showScreen('result');
+    document.getElementById('score-value').textContent = '...';
+    document.getElementById('stat-correct').textContent = '-';
+    document.getElementById('stat-wrong').textContent = '-';
+    document.getElementById('stat-skip').textContent = '-';
+    document.getElementById('stat-time').textContent = formatTime(elapsedSeconds);
+    document.getElementById('result-title').textContent = 'Corrigindo...';
+    document.getElementById('result-subtitle').textContent = 'Aguarde, o servidor está calculando seu resultado.';
+    document.getElementById('result-icon').innerHTML = '<div class="spinner" style="width:48px;height:48px;border-width:4px;"></div>';
+
+    let resultado = null;
+
+    try {
+      const token = sessionStorage.getItem('aws_mentoria_token');
+      const res = await fetch(`${API_BASE}/corrigir`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prova: config.cert,
+          questoes_ids,
+          respostas
+        })
+      });
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          sessionStorage.removeItem('aws_mentoria_token');
+          alert('Sessão expirada. Faça login novamente para ver o resultado.');
+          showScreen('home');
+          return;
+        }
+        throw new Error(`Erro do servidor: ${res.status}`);
+      }
+
+      resultado = await res.json();
+
+    } catch (err) {
+      console.error('Erro ao corrigir prova no backend:', err);
+      alert('Não foi possível obter a correção do servidor. Tente novamente.');
+      showScreen('exam');
+      startTimer();
+      return;
+    }
+
+    // Preenche o campo q.correct em examQuestions com o gabarito vindo do backend
+    // Isso habilita o renderReview e o modo treino retroativamente
+    if (resultado.detalhes) {
+      resultado.detalhes.forEach((detalhe, idx) => {
+        if (examQuestions[idx]) {
+          const correta = detalhe.resposta_correta;
+          examQuestions[idx].correct = correta.length === 1 ? correta[0] : correta;
+        }
+      });
+    }
+
+    const correct  = resultado.corretas;
+    const wrong    = resultado.erradas;
+    const skipped  = resultado.puladas;
+    const pct      = resultado.score;
     const passingScore = 70;
-    
-    // Save to performance history
+
+    // Salva no histórico de performance
     const perfObj = {
       date: new Date().toISOString(),
       score: pct,
-      correct: correct,
-      wrong: wrong,
-      skipped: skipped,
-      total: examQuestions.length,
+      correct,
+      wrong,
+      skipped,
+      total: resultado.total,
       timeTaken: elapsedSeconds
     };
     savePerformanceHistory(config.cert, perfObj);
+
+    // Renderiza tela de resultado
+    const icon  = document.getElementById('result-icon');
+    const title = document.getElementById('result-title');
+    const sub   = document.getElementById('result-subtitle');
 
     if (pct >= passingScore) {
       icon.innerHTML = '<i class="ph ph-trophy"></i>';
@@ -684,13 +749,13 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     }
 
     document.getElementById('score-value').textContent = pct + '%';
-    // Animate circle
+
+    // Anima o círculo de score
     const fg = document.getElementById('score-fg');
     const circumference = 2 * Math.PI * 90;
     fg.style.strokeDasharray = circumference;
     fg.style.strokeDashoffset = circumference;
     let svg = fg.closest('svg');
-    // Remove old gradient
     const oldDefs = svg.querySelector('defs');
     if (oldDefs) oldDefs.remove();
     const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
@@ -707,26 +772,25 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     });
 
     document.getElementById('stat-correct').textContent = correct;
-    document.getElementById('stat-wrong').textContent = wrong;
-    document.getElementById('stat-skip').textContent = skipped;
-    document.getElementById('stat-time').textContent = formatTime(elapsedSeconds);
+    document.getElementById('stat-wrong').textContent   = wrong;
+    document.getElementById('stat-skip').textContent    = skipped;
+    document.getElementById('stat-time').textContent    = formatTime(elapsedSeconds);
 
-    // Diagnóstico de Desempenho por Domínio AWS
+    // Diagnóstico de Desempenho por Domínio (usa os temas das questões locais)
     const domainStats = {};
-    examQuestions.forEach((q, i) => {
-      const isCorrect = !isAnswerEmpty(answers[i]) && isAnswerCorrect(q, answers[i]);
-      if (q.temas && Array.isArray(q.temas)) {
-        q.temas.forEach(domain => {
-          if (!domainStats[domain]) {
-            domainStats[domain] = { total: 0, correct: 0 };
-          }
-          domainStats[domain].total++;
-          if (isCorrect) {
-            domainStats[domain].correct++;
-          }
-        });
-      }
-    });
+    if (resultado.detalhes) {
+      resultado.detalhes.forEach((detalhe, idx) => {
+        const q = examQuestions[idx];
+        const isCorrect = detalhe.status === 'correta';
+        if (q && q.temas && Array.isArray(q.temas)) {
+          q.temas.forEach(domain => {
+            if (!domainStats[domain]) domainStats[domain] = { total: 0, correct: 0 };
+            domainStats[domain].total++;
+            if (isCorrect) domainStats[domain].correct++;
+          });
+        }
+      });
+    }
 
     const domainsAnalysisContainer = document.getElementById('result-domains-analysis');
     const domainsAnalysisList = document.getElementById('domains-analysis-list');
@@ -738,14 +802,7 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
         domainKeys.forEach(domain => {
           const stats = domainStats[domain];
           const domainPct = Math.round((stats.correct / stats.total) * 100);
-          
-          let colorClass = 'domain-fail';
-          if (domainPct >= 75) {
-            colorClass = 'domain-pass';
-          } else if (domainPct >= 50) {
-            colorClass = 'domain-warning';
-          }
-          
+          let colorClass = domainPct >= 75 ? 'domain-pass' : domainPct >= 50 ? 'domain-warning' : 'domain-fail';
           const domainRow = document.createElement('div');
           domainRow.className = 'domain-analysis-row';
           domainRow.innerHTML = `
@@ -758,8 +815,6 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
             </div>
           `;
           domainsAnalysisList.appendChild(domainRow);
-          
-          // Micro-animação de preenchimento das barras
           setTimeout(() => {
             const bar = domainRow.querySelector('.domain-bar');
             if (bar) bar.style.width = domainPct + '%';
@@ -769,8 +824,6 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
         domainsAnalysisContainer.style.display = 'none';
       }
     }
-
-    showScreen('result');
   }
 
   // Review

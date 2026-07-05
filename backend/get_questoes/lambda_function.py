@@ -30,9 +30,11 @@ def lambda_handler(event, context):
             KeyConditionExpression=Key('PK').eq(certificacao)
         )
         
-        # 3. Retorna a lista completa (mantendo o gabarito liberado conforme decidimos)
+        # 3. Remove o gabarito antes de retornar — correção acontece no backend via POST /corrigir
         questoes = resposta.get('Items', [])
-        
+        for questao in questoes:
+            questao.pop('respostas_corretas', None)
+
         return {
             'statusCode': 200,
             'headers': {
