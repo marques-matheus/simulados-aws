@@ -1,5 +1,6 @@
 import json
 import boto3
+from boto3.dynamodb.types import TypeDeserializer
 from decimal import Decimal
 
 # --- Utilitários ---
@@ -10,6 +11,13 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, Decimal):
             return int(obj) if obj % 1 == 0 else float(obj)
         return super().default(obj)
+
+
+_deserializer = TypeDeserializer()
+
+def deserializar(item_dynamodb):
+    """Converte item no formato DynamoDB wire ({S:..., N:..., L:...}) para dict Python."""
+    return {k: _deserializer.deserialize(v) for k, v in item_dynamodb.items()}
 
 
 def normalizar(resposta):
@@ -205,25 +213,7 @@ def lambda_handler(event, context):
         else:
             itens_raw = response['Responses'].get(TABLE_NAME, [])
 
-        # 3. Deserializa os itens (formato DynamoDB → Python dict simples)
-        def deserializar(item_dynamodb):
-            """Converte item no formato DynamoDB ({S:..., N:..., L:...}) para dict Python."""
-            result = {}
-            for key, value in item_dynamodb.items():
-                if 'S' in value:
-                    result[key] = value['S']
-                elif 'N' in value:
-                    result[key] = Decimal(value['N'])
-                elif 'L' in value:
-                    result[key] = [
-                        v.get('S', v.get('N', '')) for v in value['L']
-                    ]
-                elif 'BOOL' in value:
-                    result[key] = value['BOOL']
-                else:
-                    result[key] = str(value)
-            return result
-
+        # 3. Deserializa os itens e indexa por SK
         itens_db = {
             item['SK']['S']: deserializar(item)
             for item in itens_raw
