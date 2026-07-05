@@ -22,27 +22,57 @@ def deserializar(item_dynamodb):
 
 def normalizar(resposta):
     """
-    Converte a resposta do usuário (int, lista de int ou lista de str)
-    para um set de int, permitindo comparação uniforme com o gabarito.
+    Converte a resposta do usuário (int ou lista de int)
+    para um set de int para comparação.
 
     Exemplos:
-        normalizar(1)        → {1}
-        normalizar([0, 2])   → {0, 2}
-        normalizar(["1","3"])→ {1, 3}
+        normalizar(1)      → {1}
+        normalizar([0, 2]) → {0, 2}
     """
     if isinstance(resposta, list):
         return set(int(x) for x in resposta)
     return {int(resposta)}
 
 
-def classificar_questao(idx, respostas_usuario, respostas_corretas_db):
+def gabarito_para_indices(respostas_corretas_db, opcoes):
+    """
+    Converte respostas_corretas do DynamoDB (lista de textos de opções)
+    para um set de índices inteiros, buscando a posição de cada texto
+    na lista de opcoes.
+
+    Exemplo:
+        respostas_corretas_db = ["Amazon DynamoDB"]
+        opcoes               = ["Amazon Neptune", "Amazon Redshift", "Amazon DynamoDB", "Amazon RDS"]
+        → {2}
+    """
+    indices = set()
+    for texto_correto in respostas_corretas_db:
+        try:
+            idx = opcoes.index(texto_correto)
+            indices.add(idx)
+        except ValueError:
+            # Tenta correspondência parcial (remove prefixo "A. ", "B. " etc.)
+            texto_limpo = str(texto_correto).strip()
+            for i, opcao in enumerate(opcoes):
+                opcao_limpa = str(opcao).strip()
+                # Remove prefixo de letra se existir (ex: "A. texto" → "texto")
+                import re as _re
+                opcao_sem_prefixo = _re.sub(r'^[A-H][\.\)]\s*', '', opcao_limpa)
+                if opcao_limpa == texto_limpo or opcao_sem_prefixo == texto_limpo:
+                    indices.add(i)
+                    break
+    return indices
+
+
+def classificar_questao(idx, respostas_usuario, respostas_corretas_db, opcoes):
     """
     Classifica uma questão como 'correta', 'errada' ou 'pulada'.
 
     Args:
-        idx: índice da questão (int ou str) no mapa de respostas
+        idx: índice da questão (int) no mapa de respostas
         respostas_usuario: dict {str(idx) -> int ou lista de int}
-        respostas_corretas_db: lista de strings do DynamoDB (ex: ["1"] ou ["0","2"])
+        respostas_corretas_db: lista de textos de opções corretas do DynamoDB
+        opcoes: lista de textos de todas as opções da questão
 
     Returns:
         str: "correta", "errada" ou "pulada"
@@ -51,8 +81,8 @@ def classificar_questao(idx, respostas_usuario, respostas_corretas_db):
     if chave not in respostas_usuario:
         return "pulada"
 
-    gabarito = normalizar(respostas_corretas_db)
-    resposta = normalizar(respostas_usuario[chave])
+    gabarito = gabarito_para_indices(respostas_corretas_db, opcoes)
+    resposta  = normalizar(respostas_usuario[chave])
 
     return "correta" if resposta == gabarito else "errada"
 
@@ -64,7 +94,7 @@ def calcular_resultado(questoes_ids, respostas_usuario, itens_db):
     Args:
         questoes_ids: lista de SKs das questões na ordem exibida ao usuário
         respostas_usuario: dict {str(idx) -> int ou lista de int}
-        itens_db: dict {SK -> item do DynamoDB}
+        itens_db: dict {SK -> item do DynamoDB (deserializado)}
 
     Returns:
         dict com score, total, corretas, erradas, puladas e detalhes
@@ -78,12 +108,12 @@ def calcular_resultado(questoes_ids, respostas_usuario, itens_db):
         }
 
     corretas = 0
-    erradas = 0
-    puladas = 0
+    erradas  = 0
+    puladas  = 0
     detalhes = []
 
     for idx, sk in enumerate(questoes_ids):
-        item = itens_db.get(sk)
+        item  = itens_db.get(sk)
         chave = str(idx)
 
         # Questão não encontrada no DynamoDB → trata como pulada
@@ -98,39 +128,44 @@ def calcular_resultado(questoes_ids, respostas_usuario, itens_db):
             })
             continue
 
+        opcoes                = item.get("opcoes", [])
         respostas_corretas_db = item.get("respostas_corretas", [])
-        status = classificar_questao(idx, respostas_usuario, respostas_corretas_db)
+
+        status = classificar_questao(idx, respostas_usuario, respostas_corretas_db, opcoes)
 
         if status == "correta":
             corretas += 1
         elif status == "errada":
-            erradas += 1
+            erradas  += 1
         else:
-            puladas += 1
+            puladas  += 1
 
-        # Normaliza resposta_usuario para lista (ou null se pulada)
+        # Resposta do usuário como lista de índices (ou None se pulada)
         if chave in respostas_usuario:
-            resp_raw = respostas_usuario[chave]
-            resp_normalizada = list(normalizar(resp_raw))
+            resp_raw          = respostas_usuario[chave]
+            resp_normalizada  = sorted(list(normalizar(resp_raw)))
         else:
-            resp_normalizada = None
+            resp_normalizada  = None
+
+        # Gabarito como lista de índices
+        gabarito_indices = sorted(list(gabarito_para_indices(respostas_corretas_db, opcoes)))
 
         detalhes.append({
-            "id": sk,
-            "status": status,
+            "id":               sk,
+            "status":           status,
             "resposta_usuario": resp_normalizada,
-            "resposta_correta": [int(x) for x in respostas_corretas_db],
-            "explicacao": item.get("explicacao", "")
+            "resposta_correta": gabarito_indices,
+            "explicacao":       item.get("explicacao", "")
         })
 
     score = round((corretas / total) * 100)
 
     return {
-        "score": score,
-        "total": total,
+        "score":    score,
+        "total":    total,
         "corretas": corretas,
-        "erradas": erradas,
-        "puladas": puladas,
+        "erradas":  erradas,
+        "puladas":  puladas,
         "detalhes": detalhes
     }
 
