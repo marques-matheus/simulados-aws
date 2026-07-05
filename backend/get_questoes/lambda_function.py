@@ -30,10 +30,13 @@ def lambda_handler(event, context):
             KeyConditionExpression=Key('PK').eq(certificacao)
         )
         
-        # 3. Remove o gabarito antes de retornar — correção acontece no backend via POST /corrigir
+        # 3. Remove o gabarito, mas expõe apenas a QUANTIDADE de respostas corretas.
+        # O frontend precisa saber se é multi-escolha (e quantas marcar),
+        # mas não pode ver quais são as respostas.
         questoes = resposta.get('Items', [])
         for questao in questoes:
-            questao.pop('respostas_corretas', None)
+            respostas = questao.pop('respostas_corretas', [])
+            questao['num_respostas_corretas'] = len(respostas)
 
         return {
             'statusCode': 200,

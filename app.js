@@ -227,15 +227,18 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
             return;
         }
 
-        // Mapeia as questões — sem respostas_corretas (gabarito fica no backend)
-        // q.correct será preenchido após POST /corrigir ao final do simulado
+        // Mapeia as questões.
+        // num_respostas_corretas: quantas respostas a questão tem (sem revelar quais são).
+        // q.correct: preenchido pelo backend após POST /corrigir com os índices corretos.
         QUESTIONS[cert] = loadedData.map(q => {
+          const numCorretas = q.num_respostas_corretas || 1;
           return {
             id: q.SK || q.id,
             cert: cert,
             question: q.pergunta,
             options: q.opcoes,
-            correct: undefined, // preenchido pelo backend após correção
+            numCorrect: numCorretas,   // quantas respostas aceitar (1 = single, 2+ = multi)
+            correct: undefined,        // preenchido pelo backend após correção
             explanation: q.explicacao,
             temas: q.temas || []
           };
@@ -433,9 +436,10 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     if (userAns === undefined) return false;
     // Modo treino só mostra gabarito se q.correct já foi preenchido pelo backend
     if (q.correct === undefined) return false;
-    if (Array.isArray(q.correct)) {
+    const isMulti = (q.numCorrect || 1) > 1;
+    if (isMulti) {
       if (!Array.isArray(userAns)) return false;
-      return userAns.length === q.correct.length;
+      return userAns.length === (q.numCorrect || 1);
     }
     return true;
   }
@@ -482,17 +486,18 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     const optContainer = document.getElementById('q-options');
     optContainer.innerHTML = '';
     const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-    const isMulti = Array.isArray(q.correct); // só true após correção do backend
-    const multiCount = isMulti ? q.correct.length : 0;
+    const numCorrect = q.numCorrect || 1;
+    const isMulti = numCorrect > 1;                          // baseado em numCorrect, não em q.correct
+    const correctSet = Array.isArray(q.correct) ? q.correct  // após correção do backend
+                     : (q.correct !== undefined ? [q.correct] : []);
 
     const isComplete = config.trainingMode && isAnswerComplete(q, answers[currentIdx]);
-    const correctSet = isMulti ? q.correct : (q.correct !== undefined ? [q.correct] : []);
 
-    // Mostra hint de multi-resposta apenas se já soubermos quantas são (após correção)
-    if (isMulti && multiCount > 1) {
+    // Hint de multi-resposta — visível desde o início do simulado
+    if (isMulti) {
       const hint = document.createElement('p');
       hint.className = 'multi-hint';
-      hint.textContent = `Selecione ${multiCount} respostas`;
+      hint.textContent = `Selecione ${numCorrect} respostas`;
       optContainer.appendChild(hint);
     }
 
@@ -524,7 +529,8 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
           if (arr.includes(i)) {
             arr = arr.filter(x => x !== i);
           } else {
-            arr.push(i);
+            // Não permite marcar mais do que numCorrect opções
+            if (arr.length < numCorrect) arr.push(i);
           }
           answers[currentIdx] = arr;
         } else {
@@ -618,10 +624,9 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
     }
   });
 
-  // Answer checking helpers — ainda usados no modo treino (quando o gabarito vem do backend após correção)
+  // Answer checking helpers — usados no renderReview após q.correct ser preenchido pelo backend
   function isAnswerCorrect(q, userAns) {
     if (userAns === undefined) return false;
-    // Usa q.correct se disponível (preenchido após correção do backend)
     if (q.correct === undefined || q.correct === null) return false;
     if (Array.isArray(q.correct)) {
       if (!Array.isArray(userAns)) return false;
@@ -630,6 +635,8 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
       const sorted2 = [...q.correct].sort((a,b)=>a-b);
       return sorted1.every((v, i) => v === sorted2[i]);
     }
+    // single choice: q.correct é int, userAns pode ser int ou array de 1
+    if (Array.isArray(userAns)) return userAns.length === 1 && userAns[0] === q.correct;
     return userAns === q.correct;
   }
 
@@ -704,12 +711,13 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
       return;
     }
 
-    // Preenche o campo q.correct em examQuestions com o gabarito vindo do backend
+    // Preenche q.correct em examQuestions com o gabarito vindo do backend
     // Isso habilita o renderReview e o modo treino retroativamente
     if (resultado.detalhes) {
       resultado.detalhes.forEach((detalhe, idx) => {
         if (examQuestions[idx]) {
-          const correta = detalhe.resposta_correta;
+          const correta = detalhe.resposta_correta; // sempre lista de índices
+          // single: armazena como int; multi: armazena como array (consistente com numCorrect)
           examQuestions[idx].correct = correta.length === 1 ? correta[0] : correta;
         }
       });
@@ -868,9 +876,11 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
 
       const cls = skipped ? 'ri-skipped' : correct ? 'ri-correct' : 'ri-wrong';
       const status = skipped ? '<i class="ph ph-square"></i> Pulada' : correct ? '<i class="ph ph-check-circle"></i> Correta' : '<i class="ph ph-x-circle"></i> Errada';
-      const isMulti = Array.isArray(q.correct);
-      const correctSet = isMulti ? q.correct : [q.correct];
-      const userSet = isMulti ? (Array.isArray(userAns) ? userAns : []) : (userAns !== undefined ? [userAns] : []);
+      const isMulti = Array.isArray(q.correct);  // após correção do backend, q.correct é lista
+      const correctSet = isMulti ? q.correct : (q.correct !== undefined ? [q.correct] : []);
+      const userSet = isMulti ? (Array.isArray(userAns) ? userAns : [])
+                              : ((q.numCorrect || 1) > 1 ? (Array.isArray(userAns) ? userAns : [])
+                                                         : (userAns !== undefined ? [userAns] : []));
 
       let optsHtml = '';
       q.options.forEach((opt, oi) => {
@@ -1102,11 +1112,11 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
       if (idx < examQuestions[currentIdx].options.length) {
         const q = examQuestions[currentIdx];
         if (config.trainingMode && isAnswerComplete(q, answers[currentIdx])) return;
-        const isMulti = Array.isArray(q.correct);
+        const isMulti = (q.numCorrect || 1) > 1;
         if (isMulti) {
           let arr = answers[currentIdx] ? [...answers[currentIdx]] : [];
           if (arr.includes(idx)) arr = arr.filter(x => x !== idx);
-          else arr.push(idx);
+          else if (arr.length < (q.numCorrect || 1)) arr.push(idx);
           answers[currentIdx] = arr;
         } else {
           answers[currentIdx] = idx;
