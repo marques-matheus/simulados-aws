@@ -27,6 +27,10 @@ module "api_gateway" {
   source               = "./modules/api_gateway"
   lambda_invoke_arn    = module.lambda_get_questoes.lambda_invoke_arn
   lambda_function_name = module.lambda_get_questoes.lambda_function_name
+
+  # Passa os outputs do Cognito para criar o JWT Authorizer
+  cognito_user_pool_id = module.cognito_simulados.user_pool_id
+  cognito_client_id    = module.cognito_simulados.client_id
 }
 
 # Mostra a URL final direto no terminal quando o apply acabar

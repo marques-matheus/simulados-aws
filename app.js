@@ -187,10 +187,27 @@ const COGNITO_LOGIN_URL = `${cognitoDomain}/login?client_id=${clientId}&response
        try {
             console.log(`Buscando questões da nuvem (API Gateway)...`);
             
-            // Faz a chamada diretamente para a sua infraestrutura AWS
-            const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes?prova=${cert}`);
+            const token = sessionStorage.getItem('aws_mentoria_token');
+            if (!token) {
+              document.getElementById('loading-overlay').style.display = 'none';
+              alert('Sessão expirada. Faça login novamente.');
+              return;
+            }
+
+            // Envia o token JWT no header Authorization para passar pelo Cognito Authorizer
+            const res = await fetch(`https://j982dfso4f.execute-api.us-east-1.amazonaws.com/questoes?prova=${cert}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
             
             if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                  sessionStorage.removeItem('aws_mentoria_token');
+                  alert('Sessão expirada. Faça login novamente.');
+                  window.location.reload();
+                  return;
+                }
                 throw new Error(`Erro na comunicação com a AWS: Status ${res.status}`);
             }
             
