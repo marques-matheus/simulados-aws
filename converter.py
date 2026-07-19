@@ -136,14 +136,14 @@ def parse_questions(filepath, cert):
         respostas_corretas = []
         for i, b in enumerate(blocks):
             if b in options:
-                # search backwards for marker
+                # Busca o marcador mais próximo antes desta opção.
+                # Ignora outros blocos (opções erradas, texto) — só para em marcadores.
                 for j in range(i-1, -1, -1):
-                    if blocks[j] in all_markers:
-                        if blocks[j] in correct_markers:
-                            respostas_corretas.append(b)
+                    if blocks[j] in correct_markers:
+                        respostas_corretas.append(b)
                         break
-                    elif blocks[j] not in all_markers and blocks[j] != b:
-                        break
+                    elif blocks[j] in wrong_markers:
+                        break  # marcador de errado encontrado — esta opção não é correta
 
         # Extract explanation
         expl_lines = lines[explicacao_idx + 1:]

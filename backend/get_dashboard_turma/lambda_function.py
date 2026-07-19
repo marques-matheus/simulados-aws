@@ -1,11 +1,15 @@
 """
 Lambda GetDashboardTurma
 
-Rotas tratadas:
-  GET /dashboard/turma/{turma_id}  — dados agregados de uma turma específica
+Rota: GET /dashboard/turma/{turma_id}
 
-O mentor só pode ver turmas que ele criou.
-GSI1PK = "TURMA#<turma_id>" na tabela Historico_Simulados.
+Acesso restrito a Mentores donos da turma.
+
+Retorna:
+  - turma_id, nome_turma
+  - alunos: todos os membros da turma (com histórico ou não)
+  - ranking: alunos com pelo menos 1 simulado, ordenados por score_medio desc
+  - dominios_fracos: top 5 domínios com menor média da turma
 """
 
 import json
@@ -37,14 +41,17 @@ def get_claims(event):
                  .get('jwt', {})
                  .get('claims', {}))
 
+
 def get_groups(claims):
     g = claims.get('cognito:groups', '')
     if isinstance(g, str):
         g = [x.strip() for x in g.split(',') if x.strip()]
     return g
 
+
 def is_mentor(claims):
     return 'Mentores' in get_groups(claims)
+
 
 def resp(status, body):
     return {'statusCode': status, 'headers': CORS_HEADERS,
@@ -52,20 +59,80 @@ def resp(status, body):
 
 
 def calcular_tendencia(scores: list) -> str:
+    """scores: lista do mais antigo para o mais recente."""
     if len(scores) < 2:
         return 'estavel'
-    return 'melhorando' if scores[-1] > scores[-2] else ('piorando' if scores[-1] < scores[-2] else 'estavel')
+    if scores[-1] > scores[-2]:
+        return 'melhorando'
+    if scores[-1] < scores[-2]:
+        return 'piorando'
+    return 'estavel'
 
 
 def calcular_dominios_fracos(registros: list, top_n: int = 5) -> list:
+    """Agrega o campo 'dominios' de todos os registros e retorna os top_n mais fracos."""
     soma, count = {}, {}
     for reg in registros:
         for dom, pct in reg.get('dominios', {}).items():
-            soma[dom]  = soma.get(dom, 0) + float(pct)
-            count[dom] = count.get(dom, 0) + 1
+            # pct pode ser Decimal ou float — converte sempre para float
+            soma[dom]  = soma.get(dom, 0.0) + float(pct)
+            count[dom] = count.get(dom, 0)  + 1
+
+    if not soma:
+        return []
+
     medias = {d: round(soma[d] / count[d], 1) for d in soma}
-    return [{'dominio': d, 'media_acerto': m}
-            for d, m in sorted(medias.items(), key=lambda x: x[1])[:top_n]]
+    return [
+        {'dominio': d, 'media_acerto': m}
+        for d, m in sorted(medias.items(), key=lambda x: x[1])[:top_n]
+    ]
+
+
+def buscar_membros_turma(turma_id: str) -> dict:
+    """
+    Retorna dict {aluno_id -> email} com todos os membros da turma,
+    consultando PK=TURMA#<id>, SK begins_with ALUNO#.
+    """
+    membros = {}
+    try:
+        resp_db = dynamodb.query(
+            TableName=TURMAS_TABLE,
+            KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',
+            ExpressionAttributeValues={
+                ':pk':     {'S': f'TURMA#{turma_id}'},
+                ':prefix': {'S': 'ALUNO#'},
+            },
+        )
+        for item in resp_db.get('Items', []):
+            d = deser(item)
+            aluno_id = d.get('aluno_id', '')
+            if aluno_id:
+                membros[aluno_id] = d.get('email', aluno_id)
+    except Exception as e:
+        print(f"Aviso: falha ao buscar membros da turma {turma_id}: {e}")
+    return membros
+
+
+def buscar_historico_turma(turma_id: str) -> list:
+    """Query no GSI: GSI1PK = TURMA#<id>. Retorna todos os registros históricos da turma."""
+    todos    = []
+    last_key = None
+    while True:
+        kwargs = {
+            'TableName':                 HIST_TABLE,
+            'IndexName':                 HIST_INDEX,
+            'KeyConditionExpression':    'GSI1PK = :pk',
+            'ExpressionAttributeValues': {':pk': {'S': f'TURMA#{turma_id}'}},
+            'ScanIndexForward':          False,
+        }
+        if last_key:
+            kwargs['ExclusiveStartKey'] = last_key
+        r = dynamodb.query(**kwargs)
+        todos.extend([deser(i) for i in r.get('Items', [])])
+        last_key = r.get('LastEvaluatedKey')
+        if not last_key:
+            break
+    return todos
 
 
 def lambda_handler(event, context):
@@ -74,70 +141,57 @@ def lambda_handler(event, context):
         sub      = claims.get('sub', '')
         turma_id = (event.get('pathParameters') or {}).get('turma_id', '')
 
+        # 1. Controle de acesso
         if not is_mentor(claims):
             return resp(403, {'mensagem': 'Acesso restrito a Mentores.'})
 
         if not turma_id:
             return resp(400, {'mensagem': "Parâmetro 'turma_id' obrigatório."})
 
-        # Verifica que o mentor é dono desta turma
-        meta = dynamodb.get_item(
+        # 2. Verifica que o mentor é dono desta turma
+        meta_resp = dynamodb.get_item(
             TableName=TURMAS_TABLE,
             Key={'PK': {'S': f'TURMA#{turma_id}'}, 'SK': {'S': 'META'}}
         )
-        if 'Item' not in meta:
+        if 'Item' not in meta_resp:
             return resp(404, {'mensagem': 'Turma não encontrada.'})
 
-        turma_meta = deser(meta['Item'])
+        turma_meta = deser(meta_resp['Item'])
         if turma_meta.get('mentor_id') != sub:
             return resp(403, {'mensagem': 'Acesso negado. Esta turma pertence a outro mentor.'})
 
-        # Busca histórico da turma via GSI: GSI1PK = TURMA#<turma_id>
-        todos = []
-        last_key = None
-        while True:
-            kwargs = {
-                'TableName':                 HIST_TABLE,
-                'IndexName':                 HIST_INDEX,
-                'KeyConditionExpression':    'GSI1PK = :pk',
-                'ExpressionAttributeValues': {':pk': {'S': f'TURMA#{turma_id}'}},
-                'ScanIndexForward':          False,
-            }
-            if last_key:
-                kwargs['ExclusiveStartKey'] = last_key
-            r = dynamodb.query(**kwargs)
-            todos.extend([deser(i) for i in r.get('Items', [])])
-            last_key = r.get('LastEvaluatedKey')
-            if not last_key:
-                break
+        nome_turma = turma_meta.get('nome', '')
+        print(f"Dashboard da turma '{nome_turma}' ({turma_id}) solicitado por mentor={sub}")
 
-        print(f"Turma {turma_id}: {len(todos)} registros encontrados.")
+        # 3. Busca membros da turma e histórico em paralelo (sequencial aqui, boto3 síncrono)
+        membros  = buscar_membros_turma(turma_id)    # {aluno_id -> email}
+        registros = buscar_historico_turma(turma_id)  # lista de dicts
 
-        if not todos:
-            return resp(200, {
-                'turma_id':        turma_id,
-                'nome_turma':      turma_meta.get('nome', ''),
-                'alunos':          [],
-                'ranking':         [],
-                'dominios_fracos': [],
-            })
+        print(f"Turma {turma_id}: {len(membros)} membros, {len(registros)} registros históricos.")
 
-        # Agrupa por aluno
-        por_aluno = {}
-        for reg in todos:
+        # 4. Agrupa registros por aluno
+        hist_por_aluno = {}
+        for reg in registros:
             aid = reg.get('aluno_id', '')
             if not aid:
                 continue
-            if aid not in por_aluno:
-                por_aluno[aid] = {'aluno_id': aid, 'email': reg.get('email', aid), 'registros': []}
-            por_aluno[aid]['registros'].append(reg)
+            hist_por_aluno.setdefault(aid, []).append(reg)
 
-        alunos, ranking = [], []
-        for aid, dados in por_aluno.items():
-            regs = sorted(dados['registros'], key=lambda r: r.get('data_iso', ''))
+        # 5. Monta resumo por aluno — inclui todos os membros, mesmo sem histórico
+        alunos  = []
+        ranking = []
+
+        # Garante que membros sem histórico também aparecem
+        todos_aluno_ids = set(membros.keys()) | set(hist_por_aluno.keys())
+
+        for aid in todos_aluno_ids:
+            email = membros.get(aid, hist_por_aluno.get(aid, [{}])[0].get('email', aid) if hist_por_aluno.get(aid) else aid)
+            regs  = sorted(hist_por_aluno.get(aid, []), key=lambda r: r.get('data_iso', ''))
+
             scores_global = [r.get('score', 0) for r in regs]
             score_medio   = round(sum(scores_global) / len(scores_global), 1) if scores_global else 0
 
+            # Agrupa por certificação
             por_cert = {}
             for reg in regs:
                 cert = reg.get('certificacao', '')
@@ -145,8 +199,8 @@ def lambda_handler(event, context):
 
             certs = []
             for cert, regs_cert in por_cert.items():
-                regs_ord = sorted(regs_cert, key=lambda r: r.get('data_iso', ''))
-                sc = [r.get('score', 0) for r in regs_ord]
+                regs_ord   = sorted(regs_cert, key=lambda r: r.get('data_iso', ''))
+                sc         = [r.get('score', 0) for r in regs_ord]
                 certs.append({
                     'cert':            cert,
                     'ultimo_score':    sc[-1] if sc else 0,
@@ -154,18 +208,35 @@ def lambda_handler(event, context):
                     'total_simulados': len(regs_cert),
                 })
 
-            alunos.append({'aluno_id': aid, 'email': dados['email'],
-                           'score_medio': score_medio, 'certificacoes': certs})
-            ranking.append({'aluno_id': aid, 'email': dados['email'], 'score_medio': score_medio})
+            alunos.append({
+                'aluno_id':        aid,
+                'email':           email,
+                'score_medio':     score_medio,
+                'total_simulados': len(regs),
+                'certificacoes':   certs,
+            })
 
+            # Ranking: só inclui alunos com pelo menos 1 simulado
+            if regs:
+                ranking.append({
+                    'aluno_id':    aid,
+                    'email':       email,
+                    'score_medio': score_medio,
+                })
+
+        # Ordena ranking por score_medio decrescente
         ranking.sort(key=lambda x: x['score_medio'], reverse=True)
+
+        # Ordena lista de alunos por email para exibição consistente
+        alunos.sort(key=lambda x: x['email'].lower())
 
         return resp(200, {
             'turma_id':        turma_id,
-            'nome_turma':      turma_meta.get('nome', ''),
+            'nome_turma':      nome_turma,
+            'total_membros':   len(membros),
             'alunos':          alunos,
             'ranking':         ranking,
-            'dominios_fracos': calcular_dominios_fracos(todos),
+            'dominios_fracos': calcular_dominios_fracos(registros),
         })
 
     except Exception as erro:
