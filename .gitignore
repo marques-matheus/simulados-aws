@@ -1,3 +1,19 @@
+# Node.js & Dependências
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+# Frontend (Vite Build)
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Variáveis de Ambiente
+.env
+.env.*
+!.env.example
+
 # Bloqueia Artefatos e Zips (A sua Lambda)
 *.zip
 
@@ -18,3 +34,9 @@ terraform.rc
 __pycache__/
 *.py[cod]
 *$py.class
+
+# IDEs e Editores de Código
+.vscode/
+.idea/
+*.swp
+.DS_Store
