@@ -17,7 +17,7 @@ Implementação em 4 fases sequenciais: (1) infra Terraform, (2) backend Python,
   - [x] main.tf atualizado com todos os novos outputs e variáveis
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-- [ ] 2. Extender Lambda CorrigirProva — persistência de histórico
+- [x] 2. Extender Lambda CorrigirProva — persistência de histórico
   - Adicionar função `calcular_dominios(questoes_ids, itens_db, detalhes)` em `backend/corrigir/lambda_function.py`
   - Adicionar função `salvar_historico(claims, prova, resultado, dominios, tempo_segundos)` com `try/except` tolerante a falhas
   - Extrair `claims` de `event['requestContext']['authorizer']['jwt']['claims']` no `lambda_handler`
@@ -25,7 +25,7 @@ Implementação em 4 fases sequenciais: (1) infra Terraform, (2) backend Python,
   - Chamar `salvar_historico()` após `calcular_resultado()`, antes de retornar a resposta
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [ ] 3. Criar Lambda GetHistoricoAluno
+- [x] 3. Criar Lambda GetHistoricoAluno
   - Criar `backend/get_historico_aluno/lambda_function.py` com `lambda_handler`
   - Implementar `verificar_acesso(claims, aluno_id_path)` — verifica sub vs path ou grupo Mentores
   - Implementar Query na tabela `Historico_Simulados` por `PK = USER#<aluno_id>`, `ScanIndexForward=False`, `Limit=100`
@@ -34,7 +34,7 @@ Implementação em 4 fases sequenciais: (1) infra Terraform, (2) backend Python,
   - Incluir headers CORS em todas as respostas
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 4. Criar Lambda GetDashboardTurma
+- [x] 4. Criar Lambda GetDashboardTurma
   - Criar `backend/get_dashboard_turma/lambda_function.py` com `lambda_handler`
   - Verificar grupo `Mentores` nos claims — retornar 403 se não autorizado
   - Implementar Query no GSI `GSI1-turma-index` com `GSI1PK = TURMA`
