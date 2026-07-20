@@ -100,7 +100,7 @@ export default function HomePage() {
       <header className="home-header">
         <div className="logotype">
           <div className="logo-mark">C</div>
-          <div className="logo-text">CloudCerto <span>| AWS</span></div>
+          <div className="logo-text">Simulados <span>| AWS</span></div>
         </div>
         <h1>Domine a AWS com simulados focados</h1>
         <p>Pratique com questões atualizadas, acompanhe sua evolução e conquiste sua próxima certificação cloud.</p>

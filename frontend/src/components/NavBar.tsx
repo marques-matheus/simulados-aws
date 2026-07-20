@@ -1,7 +1,7 @@
 /**
  * NavBar — cabeçalho da aplicação.
  *
- * - Exibe logo CloudCerto
+ * - Exibe logo Simulados
  * - Botão Login / Logout
  * - Links de navegação condicionais por papel
  * - Link para Dashboard (apenas Mentor)
@@ -24,7 +24,7 @@ export default function NavBar() {
         <Link to="/" className="navbar-logo">
           <span className="logo-mark">C</span>
           <span className="logo-text">
-            CloudCerto<span> | AWS</span>
+            Simulados<span className="logo-aws"> | AWS</span>
           </span>
         </Link>
 
