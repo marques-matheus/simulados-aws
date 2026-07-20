@@ -5,7 +5,7 @@ module "cognito_simulados" {
   domain_prefix  = "auth-simulados-xyz987"
 
   callback_urls = [
-    "http://localhost:5500/",
+    "http://localhost:5173/",
     "https://d1nv8jnyifu0hy.cloudfront.net/"
   ]
 }
