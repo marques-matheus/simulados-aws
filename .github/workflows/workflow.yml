@@ -13,9 +13,10 @@ on:
       - main
     paths-ignore:
       - 'infra/**'
+  workflow_dispatch:
 
 permissions:
-  id-token: write # Required for OIDCação 
+  id-token: write # Required for OIDC 
   contents: read  # Required for checkout
 
 jobs:
