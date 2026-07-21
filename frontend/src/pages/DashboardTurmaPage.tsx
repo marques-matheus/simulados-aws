@@ -54,7 +54,7 @@ export default function DashboardTurmaPage() {
     async function loadDashboard() {
       setLoading(true)
       try {
-        const data = await apiFetch<DashboardTurma>(`/dashboard/turma?turma_id=${selectedTurmaId}`)
+        const data = await apiFetch<DashboardTurma>(`/dashboard/turma/${selectedTurmaId}`)
         setDashboardData(data)
       } catch (err: any) {
         alert(err.message || 'Erro ao carregar dashboard da turma.')
