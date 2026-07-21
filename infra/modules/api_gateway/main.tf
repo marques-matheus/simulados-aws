@@ -38,8 +38,9 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
 
 # 4. Conecta o API Gateway à sua função Lambda (Integração)
 resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id           = aws_apigatewayv2_api.http_api.id
-  integration_type = "AWS_PROXY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  payload_format_version = "2.0"
 
   integration_uri    = var.lambda_invoke_arn
   integration_method = "POST" # A AWS exige que a invocação interna do Lambda seja POST
@@ -67,8 +68,9 @@ resource "aws_lambda_permission" "api_gw_lambda" {
 
 # 7. Integração com a Lambda CorrigirProva
 resource "aws_apigatewayv2_integration" "lambda_corrigir_integration" {
-  api_id           = aws_apigatewayv2_api.http_api.id
-  integration_type = "AWS_PROXY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  payload_format_version = "2.0"
 
   integration_uri    = var.lambda_corrigir_invoke_arn
   integration_method = "POST"
@@ -95,10 +97,11 @@ resource "aws_lambda_permission" "api_gw_corrigir" {
 
 # 10. Integração com a Lambda GetHistoricoAluno
 resource "aws_apigatewayv2_integration" "lambda_get_historico" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "AWS_PROXY"
-  integration_uri    = var.lambda_get_historico_invoke_arn
-  integration_method = "POST"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  payload_format_version = "2.0"
+  integration_uri        = var.lambda_get_historico_invoke_arn
+  integration_method     = "POST"
 }
 
 # 11. Rota protegida: GET /historico/{aluno_id} exige token JWT válido
@@ -121,10 +124,11 @@ resource "aws_lambda_permission" "api_gw_get_historico" {
 
 # 13. Integração com a Lambda GetDashboardTurma
 resource "aws_apigatewayv2_integration" "lambda_dashboard_turma" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "AWS_PROXY"
-  integration_uri    = var.lambda_get_dashboard_turma_invoke_arn
-  integration_method = "POST"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  payload_format_version = "2.0"
+  integration_uri        = var.lambda_get_dashboard_turma_invoke_arn
+  integration_method     = "POST"
 }
 
 # 14. Rota protegida: GET /dashboard/turma exige token JWT válido
@@ -147,10 +151,11 @@ resource "aws_lambda_permission" "api_gw_dashboard_turma" {
 
 # 16. Integração com a Lambda GerenciarTurmas
 resource "aws_apigatewayv2_integration" "lambda_gerenciar_turmas" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "AWS_PROXY"
-  integration_uri    = var.lambda_gerenciar_turmas_invoke_arn
-  integration_method = "POST"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  payload_format_version = "2.0"
+  integration_uri        = var.lambda_gerenciar_turmas_invoke_arn
+  integration_method     = "POST"
 }
 
 # 17. POST /turmas — mentor cria uma nova turma

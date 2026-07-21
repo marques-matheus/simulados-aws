@@ -256,6 +256,7 @@ def entrar_turma(claims, body):
 
 def lambda_handler(event, context):
     try:
+        print(f"EVENT RECEIVED: {json.dumps(event)}")
         claims    = get_claims(event)
         route_key = event.get('routeKey', '')
 
