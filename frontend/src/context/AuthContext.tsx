@@ -5,7 +5,7 @@
  * - Decodifica claims do JWT para extrair sub, email, papel
  * - Expõe `login(token)` e `logout()` para toda a árvore de componentes
  */
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, type ReactNode } from 'react'
 import { decodeJwt, getPapel, isTokenExpired, type JwtClaims } from '../utils/jwt'
 import type { AuthState, Papel } from '../types'
 
