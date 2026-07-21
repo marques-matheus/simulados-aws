@@ -238,10 +238,10 @@ export default function DashboardTurmaPage() {
                   <div className="ranking-list">
                     {dashboardData?.ranking.slice(0, 5).map((r, i) => (
                       <div key={r.aluno_id} className={`ranking-item top-${i + 1}`}>
-                        <div className="ranking-position">{i + 1}</div>
-                        <div className="ranking-info">
-                          <div className="email">{r.email.split('@')[0]}</div>
-                          <div className="score">Média: {r.score_medio}%</div>
+                        <div className="rk-avatar">{(r.nome || r.email).substring(0, 2).toUpperCase()}</div>
+                        <div className="rk-info">
+                          <span className="rk-name">{r.nome || r.email.split('@')[0]}</span>
+                          <span className="rk-score">{r.score_medio}% médio</span>
                         </div>
                       </div>
                     ))}

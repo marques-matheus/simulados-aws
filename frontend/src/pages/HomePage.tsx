@@ -24,6 +24,9 @@ export default function HomePage() {
   const [codigoConvite, setCodigoConvite] = useState('')
   const [entrandoTurma, setEntrandoTurma] = useState(false)
 
+  const [meuNome, setMeuNome] = useState('')
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false)
+
   // Fetch turmas do aluno
   useEffect(() => {
     if (isAuthenticated && papel === 'Aluno') {
@@ -49,6 +52,23 @@ export default function HomePage() {
       alert(err.message || 'Erro ao entrar na turma.')
     } finally {
       setEntrandoTurma(false)
+    }
+  }
+
+  async function handleSalvarPerfil(e: React.FormEvent) {
+    e.preventDefault()
+    if (!meuNome.trim()) return
+    setSalvandoPerfil(true)
+    try {
+      const res = await apiFetch<{mensagem: string}>('/perfil', {
+        method: 'POST',
+        body: JSON.stringify({ nome: meuNome })
+      })
+      alert(res.mensagem)
+    } catch (err: any) {
+      alert(err.message || 'Erro ao salvar perfil.')
+    } finally {
+      setSalvandoPerfil(false)
     }
   }
 
@@ -137,6 +157,28 @@ export default function HomePage() {
         <h1>Domine a AWS com simulados focados</h1>
         <p>Pratique com questões atualizadas, acompanhe sua evolução e conquiste sua próxima certificação cloud.</p>
       </header>
+
+      {isAuthenticated && (
+        <div className="turma-join-section" style={{ marginBottom: isAuthenticated && papel === 'Aluno' ? '1rem' : '2rem' }}>
+          <h3><i className="ph ph-user" /> Meu Perfil</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+            Como você quer ser chamado(a) no dashboard das suas turmas?
+          </p>
+          <form onSubmit={handleSalvarPerfil} style={{ display: 'flex', gap: '8px' }}>
+            <input 
+              type="text" 
+              placeholder="Seu nome completo ou apelido" 
+              value={meuNome}
+              onChange={e => setMeuNome(e.target.value)}
+              disabled={salvandoPerfil}
+              style={{ flex: 1, padding: '0.8rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-inset)', color: 'var(--text)' }}
+            />
+            <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={salvandoPerfil}>
+              {salvandoPerfil ? 'Salvando...' : 'Salvar Nome'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {isAuthenticated && papel === 'Aluno' && (
         <div className="turma-join-section">

@@ -63,6 +63,7 @@ export interface CertResumida {
 export interface AlunoResumido {
   aluno_id: string
   email: string
+  nome?: string
   score_medio: number
   total_simulados: number
   certificacoes: CertResumida[]

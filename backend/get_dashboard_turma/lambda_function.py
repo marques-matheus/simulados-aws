@@ -91,7 +91,7 @@ def calcular_dominios_fracos(registros: list, top_n: int = 5) -> list:
 
 def buscar_membros_turma(turma_id: str) -> dict:
     """
-    Retorna dict {aluno_id -> email} com todos os membros da turma,
+    Retorna dict {aluno_id -> {email, nome}} com todos os membros da turma,
     consultando PK=TURMA#<id>, SK begins_with ALUNO#.
     """
     membros = {}
@@ -108,7 +108,10 @@ def buscar_membros_turma(turma_id: str) -> dict:
             d = deser(item)
             aluno_id = d.get('aluno_id', '')
             if aluno_id:
-                membros[aluno_id] = d.get('email', aluno_id)
+                membros[aluno_id] = {
+                    'email': d.get('email', aluno_id),
+                    'nome': d.get('nome', '')
+                }
     except Exception as e:
         print(f"Aviso: falha ao buscar membros da turma {turma_id}: {e}")
     return membros
@@ -186,7 +189,10 @@ def lambda_handler(event, context):
         todos_aluno_ids = set(membros.keys()) | set(hist_por_aluno.keys())
 
         for aid in todos_aluno_ids:
-            email = membros.get(aid, hist_por_aluno.get(aid, [{}])[0].get('email', aid) if hist_por_aluno.get(aid) else aid)
+            membro_data = membros.get(aid, {})
+            email = membro_data.get('email') or (hist_por_aluno.get(aid, [{}])[0].get('email', aid) if hist_por_aluno.get(aid) else aid)
+            nome = membro_data.get('nome') or ''
+            
             regs  = sorted(hist_por_aluno.get(aid, []), key=lambda r: r.get('data_iso', ''))
 
             scores_global = [r.get('score', 0) for r in regs]
@@ -212,6 +218,7 @@ def lambda_handler(event, context):
             alunos.append({
                 'aluno_id':        aid,
                 'email':           email,
+                'nome':            nome,
                 'score_medio':     score_medio,
                 'total_simulados': len(regs),
                 'certificacoes':   certs,
@@ -222,6 +229,7 @@ def lambda_handler(event, context):
                 ranking.append({
                     'aluno_id':    aid,
                     'email':       email,
+                    'nome':        nome,
                     'score_medio': score_medio,
                 })
 

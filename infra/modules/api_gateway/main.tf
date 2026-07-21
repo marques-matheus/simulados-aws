@@ -211,3 +211,12 @@ resource "aws_lambda_permission" "api_gw_gerenciar_turmas" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
+
+# 23. POST /perfil — salva nome de perfil do usuário e atualiza turmas
+resource "aws_apigatewayv2_route" "post_perfil_route" {
+  api_id             = aws_apigatewayv2_api.http_api.id
+  route_key          = "POST /perfil"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda_gerenciar_turmas.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+}

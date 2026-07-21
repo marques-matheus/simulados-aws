@@ -45,12 +45,6 @@ export default function App() {
     }
   }, [login])
 
-  // Redireciona Mentor para /dashboard após login
-  useEffect(() => {
-    if (isAuthenticated && papel === 'Mentor' && window.location.pathname === '/') {
-      navigate('/dashboard', { replace: true })
-    }
-  }, [isAuthenticated, papel, navigate])
 
   return (
     <>

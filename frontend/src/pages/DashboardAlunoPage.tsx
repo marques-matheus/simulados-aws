@@ -26,8 +26,8 @@ export default function DashboardAlunoPage() {
 
     async function loadHistorico() {
       try {
-        const data = await apiFetch<RegistroHistorico[]>(`/historico?aluno_id=${alunoId}&turma_id=${turmaId}`)
-        setHistorico(data)
+        const data = await apiFetch<RegistroHistorico[]>(`/historico/${alunoId}?turma_id=${turmaId}`)
+        setHistorico(data || [])
       } catch (err: any) {
         alert(err.message || 'Erro ao carregar histórico do aluno.')
       } finally {
@@ -65,7 +65,10 @@ export default function DashboardAlunoPage() {
             <i className="ph ph-arrow-left" /> Voltar à Turma
           </button>
           <h1>Análise Individual do Aluno</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>ID: {alunoId}</p>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            {state?.nomeAluno || state?.emailAluno?.split('@')[0] || alunoId}
+            {state?.emailAluno && state?.nomeAluno && <span style={{ fontSize: '0.85rem', marginLeft: '8px' }}>({state.emailAluno})</span>}
+          </p>
         </div>
       </header>
 

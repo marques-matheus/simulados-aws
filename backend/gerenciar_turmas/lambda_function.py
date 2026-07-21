@@ -251,6 +251,50 @@ def entrar_turma(claims, body):
     })
 
 
+def atualizar_perfil(claims, body):
+    """POST /perfil — atualiza o nome do usuário e replica nas turmas onde é aluno."""
+    nome = (body.get('nome') or '').strip()
+    if not nome:
+        return resp(400, {'mensagem': "Campo 'nome' obrigatório."})
+        
+    sub = claims.get('sub', '')
+    
+    # 1. Salva o perfil do usuário na tabela (para consultas futuras se necessário)
+    dynamodb.put_item(TableName=TABLE_NAME, Item={
+        'PK': {'S': f'USER#{sub}'},
+        'SK': {'S': 'PERFIL'},
+        'nome': {'S': nome},
+    })
+    
+    # 2. Busca todas as turmas que este usuário é aluno
+    resp_db = dynamodb.query(
+        TableName=TABLE_NAME,
+        KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues={
+            ':pk': {'S': f'ALUNO#{sub}'},
+            ':prefix': {'S': 'TURMA#'}
+        }
+    )
+    
+    # 3. Para cada turma que ele está, atualiza o item de membro com o nome
+    for item in resp_db.get('Items', []):
+        d = deser(item)
+        turma_id = d.get('turma_id') or d.get('SK', '').replace('TURMA#', '')
+        if turma_id:
+            try:
+                dynamodb.update_item(
+                    TableName=TABLE_NAME,
+                    Key={'PK': {'S': f'TURMA#{turma_id}'}, 'SK': {'S': f'ALUNO#{sub}'}},
+                    UpdateExpression='SET nome = :n',
+                    ExpressionAttributeValues={':n': {'S': nome}}
+                )
+            except Exception as e:
+                print(f"Erro ao atualizar nome na turma {turma_id}: {e}")
+            
+    return resp(200, {'mensagem': 'Perfil atualizado com sucesso.', 'nome': nome})
+
+
+
 # ---------------------------------------------------------------------------
 # Handler principal — roteador
 # ---------------------------------------------------------------------------
@@ -279,6 +323,9 @@ def lambda_handler(event, context):
 
         elif route_key == 'POST /turmas/entrar':
             return entrar_turma(claims, body)
+
+        elif route_key == 'POST /perfil':
+            return atualizar_perfil(claims, body)
 
         else:
             return resp(404, {'mensagem': f'Rota não encontrada: {route_key}'})
