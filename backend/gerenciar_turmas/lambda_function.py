@@ -135,6 +135,34 @@ def listar_turmas(claims):
     )
 
     turmas = [deser(i) for i in resp_db.get('Items', [])]
+
+    if is_mentor(claims) and turmas:
+        # Busca o codigo_convite via BatchGetItem
+        keys = [{'PK': {'S': f'TURMA#{t.get("turma_id", "")}'}, 'SK': {'S': 'META'}} for t in turmas if t.get('turma_id')]
+        
+        if keys:
+            try:
+                # Divide em chunks de 100 (limite do DynamoDB)
+                for i in range(0, len(keys), 100):
+                    chunk = keys[i:i+100]
+                    batch_resp = dynamodb.batch_get_item(
+                        RequestItems={
+                            TABLE_NAME: {
+                                'Keys': chunk,
+                                'ProjectionExpression': 'PK, codigo_convite'
+                            }
+                        }
+                    )
+                    meta_items = batch_resp.get('Responses', {}).get(TABLE_NAME, [])
+                    codigo_map = {deser(item)['PK']: deser(item).get('codigo_convite', '') for item in meta_items}
+                    
+                    for t in turmas:
+                        pk = f'TURMA#{t.get("turma_id", "")}'
+                        if pk in codigo_map:
+                            t['codigo_convite'] = codigo_map[pk]
+            except Exception as e:
+                print(f"Erro ao buscar codigos de convite: {e}")
+
     return resp(200, turmas)
 
 
