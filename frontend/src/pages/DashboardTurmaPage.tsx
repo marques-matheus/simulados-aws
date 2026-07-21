@@ -120,11 +120,12 @@ export default function DashboardTurmaPage() {
         </div>
 
         {turmas.length > 0 && (
-          <div style={{ minWidth: '250px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '250px' }}>
             <select
               className="select-premium"
               value={selectedTurmaId || ''}
               onChange={e => setSelectedTurmaId(e.target.value)}
+              style={{ width: '100%' }}
             >
               {turmas.map(t => (
                 <option key={t.turma_id} value={t.turma_id}>
@@ -132,6 +133,11 @@ export default function DashboardTurmaPage() {
                 </option>
               ))}
             </select>
+            {turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite && (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-inset)', padding: '4px 12px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                Convite: <span className="codigo-convite" style={{ fontWeight: 'bold', letterSpacing: '1px' }}>{turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -165,12 +171,6 @@ export default function DashboardTurmaPage() {
             <div className="dashboard-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3><i className="ph ph-users" /> Alunos ({dashboardData?.alunos.length || 0})</h3>
-                
-                {dashboardData && turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite && (
-                  <div style={{ fontSize: '0.85rem' }}>
-                    Convite: <span className="codigo-convite">{turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite}</span>
-                  </div>
-                )}
               </div>
 
               {dashboardData?.alunos.length === 0 ? (
