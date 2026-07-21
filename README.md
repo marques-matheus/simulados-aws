@@ -1,62 +1,66 @@
-# Roadmap do Projeto: Plataforma Serverless de Simulados AWS
+# Plataforma Serverless de Simulados AWS ☁️
 
-**Objetivo:** Migrar a plataforma estática atual para uma arquitetura 100% Serverless na AWS, habilitando controle de acesso (Alunos/Mentores) e telemetria de desempenho, mantendo o custo operacional no Free Tier.
+**Status:** Concluído ✅
 
-**Metodologia de Infraestrutura:** Toda a fundação cloud será provisionada via Terraform (IaC).
-
----
-
-## 🟢 Fase 1: Fundação & Identidade (Concluído)
-
-O alicerce de infraestrutura e segurança da aplicação.
-
-- [x] **Setup do Repositório:** Estruturação das pastas (`/frontend` e `/infra`) e do `ROADMAP.md`.
-- [x] **Infra como Código:** Configuração do backend remoto do Terraform (S3 + DynamoDB State Lock).
-- [x] **Hospedagem Estática:** Bucket S3 provisionado e distribuído via CloudFront (com OAC).
-- [x] **Autenticação (AWS Cognito):** Criação do User Pool, App Client e Hosted UI.
-- [x] **RBAC (Controle de Acesso):** Criação dos grupos `Mentores` e `Alunos` no Cognito.
-- [x] **Proteção do Frontend:** Script no `app.js` interceptando o JWT e forçando o login para acessar os simulados.
+Uma plataforma educacional completa, rodando 100% de forma Serverless na infraestrutura da AWS. O sistema permite que estudantes simulem exames de certificações AWS reais e acompanhem seu progresso, enquanto mentores podem criar turmas, convidar alunos e acompanhar a evolução analítica de cada um através de um painel de controle.
 
 ---
 
-## 🟡 Fase 2: Camada de Dados (Em Andamento)
+## 🎯 Principais Funcionalidades
 
-Migração das questões estáticas para o banco de dados NoSQL.
+### Para Alunos 🧑‍🎓
+- **Simulados Dinâmicos:** As questões são embaralhadas e validadas diretamente no banco de dados.
+- **Histórico e Evolução:** Todos os simulados realizados ficam gravados na nuvem, acessíveis de qualquer dispositivo através da página de Evolução.
+- **Turmas de Mentoria:** Possibilidade de usar códigos de convite para ingressar em turmas de mentores.
+- **Anti-Repetição Inteligente:** O algoritmo evita que questões respondidas nos últimos simulados caiam no próximo.
 
-- [x] **IaC do Banco:** Executar o `terraform apply` do módulo do DynamoDB (`Simulados_AWS` com `PAY_PER_REQUEST`).
-- [x] **Estruturação dos Dados:** Revisar o arquivo JSON de origem para garantir que os atributos (ID, pergunta, opções, temas) estão limpos.
-- [x] **Script de Carga (Python/Boto3):** Escrever e executar o script local para ler o JSON e injetar as questões na tabela via `BatchWriteItem`.
-- [x] **Validação de Dados:** Confirmar via console se a Partition Key (`CERT#...`) e a Sort Key (`Q#...`) foram gravadas corretamente.
-
----
-
-## ⚪ Fase 3: Computação & APIs (Próximo Passo)
-
-O motor de regras de negócio e validação.
-
-- [ ] **IaC da API:** Criar o módulo Terraform para o Amazon API Gateway (REST ou HTTP API).
-- [ ] **Segurança da API:** Configurar o Cognito Authorizer no API Gateway para bloquear requisições sem token válido.
-- [ ] **Desenvolvimento Lambda 1 (`GetQuestoes`):** Função (Node.js/Python) que busca as perguntas no DynamoDB e devolve para o front (removendo o campo de resposta correta do payload).
-- [ ] **Desenvolvimento Lambda 2 (`SubmitSimulado`):** Função que recebe as respostas do aluno, calcula a nota cruzando com o gabarito no banco e salva o progresso na tabela.
-- [ ] **IaC das Funções Lambda:** Empacotar e provisionar as funções via Terraform, aplicando permissões de Least Privilege no IAM.
+### Para Mentores 👨‍🏫
+- **Gerenciamento de Turmas:** Crie turmas e gere códigos de convite instantâneos.
+- **Dashboard Analítico:** Visualize a média de pontuação, total de simulados feitos e identifique os domínios/tópicos onde a turma ou alunos individuais estão com pior desempenho.
 
 ---
 
-## ⚪ Fase 4: Refatoração do Frontend & Multi-Perfil
+## 🏗️ Arquitetura (AWS Serverless)
 
-Adequação da interface para consumir a nova API e gerenciar as permissões.
+Toda a fundação cloud do projeto foi provisionada e é gerenciada via **Terraform (IaC)**, utilizando as melhores práticas de esteira CI/CD via GitHub Actions.
 
-- [ ] **Limpeza de Arquivos:** Deletar os `.json` e `.txt` locais de dentro do projeto (já que estarão no DynamoDB).
-- [ ] **Decodificação do JWT:** Alterar o `app.js` para ler a claim `cognito:groups` do token e identificar o perfil (Aluno vs. Mentor).
-- [ ] **Integração com API (Alunos):** Substituir as chamadas de arquivo local por `fetch()` nas rotas do API Gateway.
-- [ ] **Painel do Mentor:** Criar a tela de Dashboard restrita, que consumirá uma rota específica da API para listar a evolução e os pontos de falha da turma.
+Para visualizar o diagrama de arquitetura em detalhes, acesse: [architecture_diagram.md](./architecture_diagram.md).
+
+- **Frontend:** React + Vite, hospedado via estática no Amazon S3 com distribuição por CDN via Amazon CloudFront.
+- **Autenticação:** Amazon Cognito (User Pool). Uma Lambda de *Pre Token Generation* intercepta o login e injeta o perfil (Aluno/Mentor) no JWT.
+- **API & Roteamento:** Amazon API Gateway protegido nativamente pelo Cognito Authorizer.
+- **Computação:** 5 Funções AWS Lambda independentes (Python 3.12) para tratar as rotas de correção de prova, listagem de turmas, histórico, dashboard, etc.
+- **Banco de Dados:** Amazon DynamoDB (Pay-per-request). Foram desenhadas três tabelas NoSQL independentes (`Simulados_AWS`, `Turmas`, `Historico_Simulados`) contendo índices otimizados para busca reversa e relacionamento.
 
 ---
 
-## ⚪ Fase 5: Operações e Sustentação (CloudOps)
+## 🚀 Como Executar o Frontend Localmente
 
-Preparando o ambiente para nível de produção (Managed Services).
+O frontend foi modernizado para React + TypeScript (Vite). Para testar e modificar a interface utilizando a API já hospedada na nuvem:
 
-- [ ] **CI/CD Seguro:** Validar a esteira do GitHub Actions utilizando OIDC (OpenID Connect) para aplicar as mudanças do Terraform sem chaves fixas.
-- [ ] **Separação de Ambientes (Opcional):** Implementar Workspaces no Terraform para separar o ambiente de `dev` e `prod`.
-- [ ] **Monitoramento (CloudWatch):** Criar alarmes para erros 500 no Lambda ou requisições excessivas no API Gateway.
+```bash
+# 1. Entre na pasta do frontend
+cd frontend
+
+# 2. Instale as dependências
+npm install
+
+# 3. Rode o servidor de desenvolvimento
+npm run dev
+```
+
+> A aplicação estará disponível em `http://localhost:5173/`. 
+> *(O arquivo `.env` deve apontar para o URL do API Gateway e IDs do Cognito provisionados pelo Terraform).*
+
+---
+
+## ⚙️ Deploy da Infraestrutura (IaC)
+
+A infraestrutura é completamente descrita na pasta `/infra`. Modificações nela serão aplicadas automaticamente caso você utilize o workflow de GitHub Actions (`.github/workflows`).
+
+Se for aplicar manualmente via CLI:
+```bash
+cd infra
+terraform init
+terraform apply
+```
