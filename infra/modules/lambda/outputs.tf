@@ -42,3 +42,8 @@ output "lambda_gerenciar_turmas_invoke_arn" {
 output "lambda_gerenciar_turmas_function_name" {
   value = aws_lambda_function.gerenciar_turmas.function_name
 }
+
+output "lambda_cognito_pre_token_arn" {
+  value       = aws_lambda_function.cognito_pre_token.arn
+  description = "ARN da Lambda de Pre Token Generation"
+}

@@ -65,6 +65,12 @@ export default function NavBar() {
         <div className="navbar-auth">
           {isAuthenticated ? (
             <>
+              {papel && (
+                <span className={`papel-badge ${papel.toLowerCase()}`}>
+                  <i className={papel === 'Mentor' ? 'ph ph-chalkboard-teacher' : 'ph ph-student'} />
+                  {papel}
+                </span>
+              )}
               {email && (
                 <span className="navbar-email" title={email}>
                   {email.split('@')[0]}
@@ -76,10 +82,16 @@ export default function NavBar() {
               </button>
             </>
           ) : (
-            <a href={buildCognitoLoginUrl()} className="btn-primary btn-sm navbar-btn">
-              <i className="ph ph-sign-in" />
-              <span>Fazer Login</span>
-            </a>
+            <>
+              <a href={buildCognitoLoginUrl('Aluno')} className="btn-outline btn-sm navbar-btn" style={{ borderColor: 'var(--blue)', color: 'var(--blue)' }}>
+                <i className="ph ph-student" />
+                <span>Sou Aluno</span>
+              </a>
+              <a href={buildCognitoLoginUrl('Mentor')} className="btn-outline btn-sm navbar-btn" style={{ borderColor: 'var(--orange)', color: 'var(--orange)' }}>
+                <i className="ph ph-chalkboard-teacher" />
+                <span>Sou Mentor</span>
+              </a>
+            </>
           )}
         </div>
       </div>

@@ -11,10 +11,12 @@ import type { Papel } from '../types'
 
 const COGNITO_DOMAIN = import.meta.env.VITE_COGNITO_DOMAIN
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID
+const CLIENT_ID_MENTOR = import.meta.env.VITE_COGNITO_CLIENT_ID_MENTOR
 const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI
 
-function buildCognitoLoginUrl(): string {
-  return `${COGNITO_DOMAIN}/login?client_id=${CLIENT_ID}&response_type=token&scope=email+openid+profile&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+function buildCognitoLoginUrl(papel: 'Aluno' | 'Mentor' = 'Aluno'): string {
+  const clientId = papel === 'Mentor' && CLIENT_ID_MENTOR ? CLIENT_ID_MENTOR : CLIENT_ID
+  return `${COGNITO_DOMAIN}/login?client_id=${clientId}&response_type=token&scope=email+openid+profile&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
 }
 
 interface ProtectedRouteProps {

@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks/useApi'
 import { CERT_META, CERT_CODES } from '../utils/certMeta'
 import { getRecentlyUsedIds } from '../utils/antiRepeat'
 import LoadingSpinner from '../components/LoadingSpinner'
-import type { Questao, ExamConfig } from '../types'
+import type { Questao, ExamConfig, Turma } from '../types'
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, papel } = useAuth()
   const { apiFetch } = useApi()
   const navigate = useNavigate()
 
@@ -19,6 +19,38 @@ export default function HomePage() {
   const [selectedTheme, setSelectedTheme] = useState('Todos')
   const [qty, setQty] = useState(30)
   const [trainingMode, setTrainingMode] = useState(false)
+
+  const [minhasTurmas, setMinhasTurmas] = useState<Turma[]>([])
+  const [codigoConvite, setCodigoConvite] = useState('')
+  const [entrandoTurma, setEntrandoTurma] = useState(false)
+
+  // Fetch turmas do aluno
+  useEffect(() => {
+    if (isAuthenticated && papel === 'Aluno') {
+      apiFetch<Turma[]>('/turmas')
+        .then(data => setMinhasTurmas(data || []))
+        .catch(err => console.error("Erro ao carregar turmas", err))
+    }
+  }, [isAuthenticated, papel])
+
+  async function handleEntrarTurma(e: React.FormEvent) {
+    e.preventDefault()
+    if (!codigoConvite.trim()) return
+    setEntrandoTurma(true)
+    try {
+      const res = await apiFetch<{mensagem: string, turma_id: string, nome_turma: string}>('/turmas/entrar', {
+        method: 'POST',
+        body: JSON.stringify({ codigo_convite: codigoConvite })
+      })
+      alert(res.mensagem)
+      setMinhasTurmas(prev => [...prev, { turma_id: res.turma_id, nome: res.nome_turma } as Turma])
+      setCodigoConvite('')
+    } catch (err: any) {
+      alert(err.message || 'Erro ao entrar na turma.')
+    } finally {
+      setEntrandoTurma(false)
+    }
+  }
 
   // Fetch questions when a cert is clicked
   async function handleSelectCert(cert: string) {
@@ -105,6 +137,39 @@ export default function HomePage() {
         <h1>Domine a AWS com simulados focados</h1>
         <p>Pratique com questões atualizadas, acompanhe sua evolução e conquiste sua próxima certificação cloud.</p>
       </header>
+
+      {isAuthenticated && papel === 'Aluno' && (
+        <div className="turma-join-section">
+          <h3><i className="ph ph-users-three" /> Minhas Turmas</h3>
+          {minhasTurmas.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
+              {minhasTurmas.map(t => (
+                <div key={t.turma_id} className="turma-current">
+                  <i className="ph ph-chalkboard-teacher" />
+                  <span>Você está na turma: <span className="turma-name">{t.nome_turma || t.nome}</span></span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>Você ainda não está em nenhuma turma. Peça o código de convite ao seu mentor.</p>
+          )}
+          
+          {minhasTurmas.length < 2 && (
+            <form onSubmit={handleEntrarTurma} className="turma-join-form">
+              <input 
+                type="text" 
+                placeholder="CÓDIGO DE CONVITE" 
+                value={codigoConvite}
+                onChange={e => setCodigoConvite(e.target.value.toUpperCase())}
+                disabled={entrandoTurma}
+              />
+              <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={entrandoTurma}>
+                {entrandoTurma ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
       <div className="cert-section-title">Escolha sua Certificação</div>
       

@@ -12,11 +12,31 @@ resource "aws_cognito_user_pool" "pool" {
 
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
+
+  lambda_config {
+    pre_token_generation = var.pre_token_lambda_arn
+  }
 }
 
 # App Client (Frontend)
 resource "aws_cognito_user_pool_client" "client" {
   name         = "${var.user_pool_name}-frontend"
+  user_pool_id = aws_cognito_user_pool.pool.id
+
+  generate_secret = false 
+
+  supported_identity_providers         = ["COGNITO"]
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["implicit", "code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+  
+  callback_urls = var.callback_urls
+  logout_urls   = var.callback_urls
+}
+
+# App Client (Mentor)
+resource "aws_cognito_user_pool_client" "client_mentor" {
+  name         = "${var.user_pool_name}-mentor"
   user_pool_id = aws_cognito_user_pool.pool.id
 
   generate_secret = false 

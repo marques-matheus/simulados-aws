@@ -30,6 +30,12 @@ data "archive_file" "lambda_gerenciar_turmas_zip" {
   output_path = "${path.root}/../backend/gerenciar_turmas.zip"
 }
 
+data "archive_file" "lambda_cognito_pre_token_zip" {
+  type        = "zip"
+  source_dir  = "${path.root}/../backend/cognito_pre_token"
+  output_path = "${path.root}/../backend/cognito_pre_token.zip"
+}
+
 # --- IAM Role compartilhada por todas as Lambdas ---
 
 resource "aws_iam_role" "lambda_exec_role" {
@@ -102,6 +108,22 @@ resource "aws_iam_role_policy" "turmas_policy" {
   })
 }
 
+resource "aws_iam_role_policy" "cognito_read_policy" {
+  name = "policy_leitura_cognito_clients"
+  role = aws_iam_role.lambda_exec_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "cognito-idp:ListUserPoolClients"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
 # Logs no CloudWatch
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_exec_role.name
@@ -154,4 +176,20 @@ resource "aws_lambda_function" "gerenciar_turmas" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.12"
   source_code_hash = data.archive_file.lambda_gerenciar_turmas_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "cognito_pre_token" {
+  filename         = data.archive_file.lambda_cognito_pre_token_zip.output_path
+  function_name    = "CognitoPreTokenGeneration"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "lambda_function.lambda_handler"
+  runtime          = "python3.12"
+  source_code_hash = data.archive_file.lambda_cognito_pre_token_zip.output_base64sha256
+}
+
+resource "aws_lambda_permission" "allow_cognito" {
+  statement_id  = "AllowExecutionFromCognito"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.cognito_pre_token.function_name
+  principal     = "cognito-idp.amazonaws.com"
 }

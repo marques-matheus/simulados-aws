@@ -198,10 +198,21 @@ export default function DashboardTurmaPage() {
                             </span>
                           </td>
                           <td>
-                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              {a.certificacoes.map(c => (
-                                <CertBadge key={c.cert} cert={c.cert} size="sm" />
-                              ))}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              {a.certificacoes.map(c => {
+                                let trendIcon = null
+                                if (c.tendencia === 'melhorando') trendIcon = <i className="ph ph-trend-up trend-up" title="Melhorando" />
+                                else if (c.tendencia === 'piorando') trendIcon = <i className="ph ph-trend-down trend-down" title="Piorando" />
+                                else trendIcon = <i className="ph ph-minus trend-stable" title="Estável" />
+
+                                return (
+                                  <div key={c.cert} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <CertBadge cert={c.cert} size="sm" />
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.ultimo_score}%</span>
+                                    <span className="trend-icon">{trendIcon}</span>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </td>
                           <td onClick={e => e.stopPropagation()}>

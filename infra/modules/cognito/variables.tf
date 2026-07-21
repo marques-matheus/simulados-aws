@@ -14,4 +14,7 @@ variable "callback_urls" {
   description = "URLs autorizadas para redirecionamento"
 }
 
-
+variable "pre_token_lambda_arn" {
+  type        = string
+  description = "ARN da Lambda de Pre Token Generation"
+}

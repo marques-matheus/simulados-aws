@@ -8,6 +8,8 @@ module "cognito_simulados" {
     "http://localhost:5173/",
     "https://d1nv8jnyifu0hy.cloudfront.net/"
   ]
+
+  pre_token_lambda_arn = module.lambda_get_questoes.lambda_cognito_pre_token_arn
 }
 
 module "dynamodb_simulados" {
@@ -49,3 +51,4 @@ output "url_da_api_corrigir" { value = "${module.api_gateway.api_url}/corrigir" 
 output "url_da_api_historico"{ value = "${module.api_gateway.api_url}/historico/{aluno_id}" }
 output "url_da_api_dashboard"{ value = "${module.api_gateway.api_url}/dashboard/turma" }
 output "url_da_api_turmas"   { value = "${module.api_gateway.api_url}/turmas" }
+output "client_id_mentor"    { value = module.cognito_simulados.client_id_mentor }

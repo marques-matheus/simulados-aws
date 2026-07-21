@@ -864,7 +864,348 @@ code.aws-resource, code.aws-action, code.aws-inline {
   color: var(--text-muted);
 }
 
-/* ===== TURMAS MANAGEMENT ===== */
+/* ===== DASHBOARD (Mentor) ===== */
+.dashboard-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  animation: screenIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff, var(--orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 2fr 1fr;
+}
+
+.dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: border-color 0.3s;
+}
+
+.dashboard-card:hover {
+  border-color: var(--border-light);
+}
+
+.dashboard-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.dashboard-card h3 i {
+  font-size: 1.15rem;
+  color: var(--orange);
+}
+
+/* ===== DATA TABLE ===== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.data-table thead th {
+  text-align: left;
+  padding: 0.75rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.data-table tbody td {
+  padding: 0.7rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ===== RANKING ===== */
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.ranking-item:hover {
+  border-color: var(--border-light);
+  transform: translateX(3px);
+}
+
+.ranking-position {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--surface);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Gold, Silver, Bronze for top 3 */
+.ranking-item.top-1 {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: rgba(255, 215, 0, 0.06);
+}
+.ranking-item.top-1 .ranking-position {
+  background: linear-gradient(135deg, #ffd700, #ffb347);
+  color: #000;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+}
+
+.ranking-item.top-2 {
+  border-color: rgba(192, 192, 192, 0.25);
+  background: rgba(192, 192, 192, 0.04);
+}
+.ranking-item.top-2 .ranking-position {
+  background: linear-gradient(135deg, #e0e0e0, #b0b0b0);
+  color: #000;
+  font-weight: 800;
+}
+
+.ranking-item.top-3 {
+  border-color: rgba(205, 127, 50, 0.25);
+  background: rgba(205, 127, 50, 0.04);
+}
+.ranking-item.top-3 .ranking-position {
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+  color: #fff;
+  font-weight: 800;
+}
+
+.ranking-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ranking-info .email {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-info .score {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* ===== SELECT PREMIUM ===== */
+.select-premium {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-family: var(--font-text);
+  color: var(--text);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 2rem;
+}
+
+.select-premium:hover {
+  border-color: var(--orange);
+}
+
+.select-premium:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-dim);
+}
+
+.select-premium option {
+  background: #1a1d27;
+  color: var(--text);
+}
+
+/* ===== TENDÊNCIA ICONS ===== */
+.trend-up { color: var(--green); }
+.trend-down { color: var(--red); }
+.trend-stable { color: var(--text-muted); }
+
+.trend-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* ===== BADGE PAPEL ===== */
+.papel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+}
+
+.papel-badge.mentor {
+  background: var(--orange-dim);
+  color: var(--orange);
+  border: 1px solid rgba(255, 153, 0, 0.25);
+}
+
+.papel-badge.aluno {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+/* ===== TURMA JOIN (Aluno) ===== */
+.turma-join-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin: 2rem 0;
+  animation: slideUp 0.4s ease;
+}
+
+.turma-join-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.turma-join-section h3 i {
+  color: var(--orange);
+}
+
+.turma-join-section p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.turma-join-form {
+  display: flex;
+  gap: 8px;
+  max-width: 400px;
+}
+
+.turma-join-form input {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  font-size: 0.9rem;
+  font-family: 'Fira Code', var(--font-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.turma-join-form input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--font-text);
+}
+
+.turma-join-form input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-dim);
+}
+
+.turma-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.75rem 1rem;
+  background: var(--green-dim);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+.turma-current i {
+  color: var(--green);
+  font-size: 1.1rem;
+}
+
+.turma-current .turma-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+
 .turmas-section {
   background: var(--bg-raised);
   border: 1px solid var(--border);
