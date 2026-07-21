@@ -72,6 +72,7 @@ export interface AlunoResumido {
 export interface RankingItem {
   aluno_id: string
   email: string
+  nome?: string
   score_medio: number
 }
 

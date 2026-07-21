@@ -11,7 +11,7 @@
  *   /dashboard/:alunoId  → DashboardAlunoPage (Mentor only)
  */
 import { useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import NavBar from './components/NavBar'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -27,8 +27,7 @@ import DashboardTurmaPage from './pages/DashboardTurmaPage'
 import DashboardAlunoPage from './pages/DashboardAlunoPage'
 
 export default function App() {
-  const { login, isAuthenticated, papel } = useAuth()
-  const navigate = useNavigate()
+  const { login } = useAuth()
 
   // Captura o token do hash da URL após redirect do Cognito Hosted UI
   useEffect(() => {
