@@ -45,6 +45,7 @@ def get_claims(event):
 def get_groups(claims):
     g = claims.get('cognito:groups', '')
     if isinstance(g, str):
+        g = g.strip('[]').replace('"', '').replace("'", "")
         g = [x.strip() for x in g.split(',') if x.strip()]
     return g
 

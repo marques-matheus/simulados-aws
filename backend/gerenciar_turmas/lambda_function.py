@@ -57,6 +57,7 @@ def get_claims(event):
 def get_groups(claims):
     groups = claims.get('cognito:groups', '')
     if isinstance(groups, str):
+        groups = groups.strip('[]').replace('"', '').replace("'", "")
         groups = [g.strip() for g in groups.split(',') if g.strip()]
     return groups
 
@@ -80,9 +81,9 @@ def criar_turma(claims, body):
     if not is_mentor(claims):
         return resp(403, {'mensagem': 'Apenas Mentores podem criar turmas.'})
 
-    nome = (body.get('nome') or '').strip()
+    nome = (body.get('nome') or body.get('nome_turma') or '').strip()
     if not nome:
-        return resp(400, {'mensagem': "Campo 'nome' obrigatório."})
+        return resp(400, {'mensagem': "Campo 'nome' ou 'nome_turma' obrigatório."})
 
     mentor_id    = claims.get('sub', '')
     mentor_email = claims.get('email', '')

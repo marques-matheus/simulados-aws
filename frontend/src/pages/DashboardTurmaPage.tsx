@@ -33,10 +33,10 @@ export default function DashboardTurmaPage() {
   useEffect(() => {
     async function loadTurmas() {
       try {
-        const res = await apiFetch<{ turmas: Turma[] }>('/turmas')
-        setTurmas(res.turmas || [])
-        if (res.turmas && res.turmas.length > 0) {
-          setSelectedTurmaId(res.turmas[0].turma_id)
+        const res = await apiFetch<Turma[]>('/turmas')
+        setTurmas(res || [])
+        if (res && res.length > 0) {
+          setSelectedTurmaId(res[0].turma_id)
         }
       } catch (err: any) {
         alert(err.message || 'Erro ao carregar turmas.')
