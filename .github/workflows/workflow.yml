@@ -44,6 +44,7 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN }}
           VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID }}
+          VITE_COGNITO_CLIENT_ID_MENTOR: ${{ secrets.VITE_COGNITO_CLIENT_ID_MENTOR }}
           VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
 
       - name: Configure AWS credentials
