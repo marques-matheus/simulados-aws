@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CERT_META, CERT_CODES } from '../utils/certMeta'
-import { getPerformanceHistory, type PerformanceRecord } from '../utils/antiRepeat'
+import { type PerformanceRecord } from '../utils/antiRepeat'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -20,30 +20,62 @@ function formatTime(s: number): string {
   return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0')
 }
 
+import { useAuth } from '../context/AuthContext'
+import { useApi } from '../hooks/useApi'
+import LoadingSpinner from '../components/LoadingSpinner'
+
 export default function ProgressPage() {
+  const { sub } = useAuth()
+  const { apiFetch } = useApi()
   const [data, setData] = useState<Record<string, PerformanceRecord[]>>({})
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadedData: Record<string, PerformanceRecord[]> = {}
-    CERT_CODES.forEach(cert => {
-      const history = getPerformanceHistory(cert)
-      if (history && history.length > 0) {
-        loadedData[cert] = history
-      }
-    })
-    setData(loadedData)
-  }, [])
+    if (!sub) return
+
+    apiFetch<any[]>(`/historico/${sub}`)
+      .then(res => {
+        const loadedData: Record<string, PerformanceRecord[]> = {}
+        const items = res || []
+        
+        items.forEach(item => {
+          const cert = item.certificacao
+          if (!loadedData[cert]) loadedData[cert] = []
+          loadedData[cert].push({
+            date: item.data_iso,
+            score: item.score,
+            correct: item.corretas,
+            wrong: item.erradas,
+            skipped: item.puladas,
+            total: item.total,
+            timeTaken: item.tempo_segundos || 0
+          })
+        })
+        
+        // Ensure they are sorted from oldest to newest for the chart, 
+        // since the API returns newest first (ScanIndexForward=False)
+        Object.keys(loadedData).forEach(cert => {
+          loadedData[cert].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        })
+        
+        setData(loadedData)
+      })
+      .catch(err => console.error("Erro ao buscar histórico:", err))
+      .finally(() => setLoading(false))
+  }, [sub])
 
   const hasAny = Object.keys(data).length > 0
 
   return (
     <div className="page-container">
+      {loading && <LoadingSpinner overlay message="Buscando histórico..." />}
+
       <header className="home-header" style={{ marginBottom: '2rem' }}>
         <h1>Sua Evolução</h1>
         <p>Acompanhe seu desempenho nos simulados e veja seu progresso rumo à certificação.</p>
       </header>
 
-      {!hasAny ? (
+      {!loading && !hasAny ? (
         <div className="progress-empty">
           <i className="ph ph-chart-line-down" />
           <p>Você ainda não concluiu nenhum simulado.</p>

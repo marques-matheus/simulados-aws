@@ -133,11 +133,6 @@ export default function DashboardTurmaPage() {
                 </option>
               ))}
             </select>
-            {(dashboardData?.codigo_convite || turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite) && (
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-inset)', padding: '4px 12px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                Convite: <span className="codigo-convite" style={{ fontWeight: 'bold', letterSpacing: '1px' }}>{dashboardData?.codigo_convite || turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite}</span>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -169,8 +164,12 @@ export default function DashboardTurmaPage() {
           <div className="dashboard-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
             {/* Lista de Alunos */}
             <div className="dashboard-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h3><i className="ph ph-users" /> Alunos ({dashboardData?.alunos.length || 0})</h3>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'var(--bg-inset)', padding: '6px 16px', borderRadius: '20px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="ph ph-link" />
+                  Código de Convite: <strong style={{ color: '#fff', letterSpacing: '2px', fontSize: '1rem' }}>{dashboardData?.codigo_convite || turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite || '...'}</strong>
+                </div>
               </div>
 
               {dashboardData?.alunos.length === 0 ? (
@@ -190,7 +189,7 @@ export default function DashboardTurmaPage() {
                     <tbody>
                       {dashboardData?.alunos.map(a => (
                         <tr key={a.aluno_id} onClick={() => navigate(`/dashboard/${a.aluno_id}`, { state: { turmaId: selectedTurmaId } })}>
-                          <td style={{ color: '#fff', fontWeight: 500 }}>{a.email.split('@')[0]}</td>
+                          <td style={{ color: '#fff', fontWeight: 500 }}>{a.nome || a.email.split('@')[0]}</td>
                           <td>{a.total_simulados}</td>
                           <td>
                             <span style={{ color: a.score_medio >= 70 ? 'var(--green)' : 'var(--orange)', fontWeight: 600 }}>
