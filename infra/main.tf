@@ -29,8 +29,9 @@ module "api_gateway" {
   lambda_invoke_arn    = module.lambda_get_questoes.lambda_invoke_arn
   lambda_function_name = module.lambda_get_questoes.lambda_function_name
 
-  cognito_user_pool_id = module.cognito_simulados.user_pool_id
-  cognito_client_id    = module.cognito_simulados.client_id
+  cognito_user_pool_id     = module.cognito_simulados.user_pool_id
+  cognito_client_id        = module.cognito_simulados.client_id
+  cognito_client_mentor_id = module.cognito_simulados.client_id_mentor
 
   lambda_corrigir_invoke_arn    = module.lambda_get_questoes.lambda_corrigir_invoke_arn
   lambda_corrigir_function_name = module.lambda_get_questoes.lambda_corrigir_function_name

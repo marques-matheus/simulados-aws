@@ -32,7 +32,7 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
     # Onde o API Gateway vai buscar as chaves públicas para validar a assinatura do token
     issuer   = "https://cognito-idp.us-east-1.amazonaws.com/${var.cognito_user_pool_id}"
     # Quem é o dono válido do token (o App Client do Cognito)
-    audience = [var.cognito_client_id]
+    audience = [var.cognito_client_id, var.cognito_client_mentor_id]
   }
 }
 
