@@ -242,6 +242,7 @@ def lambda_handler(event, context):
         return resp(200, {
             'turma_id':        turma_id,
             'nome_turma':      nome_turma,
+            'codigo_convite':  turma_meta.get('codigo_convite', ''),
             'total_membros':   len(membros),
             'alunos':          alunos,
             'ranking':         ranking,

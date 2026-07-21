@@ -84,6 +84,7 @@ export interface DominioFraco {
 export interface DashboardTurma {
   turma_id: string
   nome_turma: string
+  codigo_convite?: string
   total_membros: number
   alunos: AlunoResumido[]
   ranking: RankingItem[]

@@ -29,11 +29,29 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
 
+const stored = typeof window !== 'undefined' ? sessionStorage.getItem(SESSION_KEY) : null
+let initialToken = null
+let initialSub = null
+let initialPapel = null
+let initialEmail = null
+
+if (stored) {
+  const claims = decodeJwt(stored)
+  if (claims && !isTokenExpired(claims)) {
+    initialToken = stored
+    initialSub = claims.sub ?? null
+    initialEmail = claims.email ?? null
+    initialPapel = getPapel(claims) as Papel
+  } else {
+    if (typeof window !== 'undefined') sessionStorage.removeItem(SESSION_KEY)
+  }
+}
+
 const initialState: AuthState = {
-  token: null,
-  sub: null,
-  papel: null,
-  email: null,
+  token: initialToken,
+  sub: initialSub,
+  papel: initialPapel,
+  email: initialEmail,
 }
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -48,7 +66,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       }
     }
     case 'LOGOUT':
-      return { ...initialState }
+      return {
+        token: null,
+        sub: null,
+        papel: null,
+        email: null,
+      }
     default:
       return state
   }
@@ -58,20 +81,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
-
-  // Na montagem, tenta restaurar o token do sessionStorage
-  useEffect(() => {
-    const stored = sessionStorage.getItem(SESSION_KEY)
-    if (stored) {
-      const claims = decodeJwt(stored)
-      if (claims && !isTokenExpired(claims)) {
-        dispatch({ type: 'LOGIN', payload: { token: stored, claims } })
-      } else {
-        // Token inválido ou expirado — limpa
-        sessionStorage.removeItem(SESSION_KEY)
-      }
-    }
-  }, [])
 
   function login(token: string) {
     const claims = decodeJwt(token)

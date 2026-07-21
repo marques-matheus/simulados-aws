@@ -133,9 +133,9 @@ export default function DashboardTurmaPage() {
                 </option>
               ))}
             </select>
-            {turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite && (
+            {(dashboardData?.codigo_convite || turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite) && (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-inset)', padding: '4px 12px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                Convite: <span className="codigo-convite" style={{ fontWeight: 'bold', letterSpacing: '1px' }}>{turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite}</span>
+                Convite: <span className="codigo-convite" style={{ fontWeight: 'bold', letterSpacing: '1px' }}>{dashboardData?.codigo_convite || turmas.find(t => t.turma_id === selectedTurmaId)?.codigo_convite}</span>
               </div>
             )}
           </div>
