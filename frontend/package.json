@@ -27,5 +27,10 @@
     "eslint-plugin-react-refresh": "^0.4.7",
     "typescript": "^5.4.5",
     "vite": "^8.1.5"
+  },
+  "overrides": {
+    "@vitejs/plugin-react": {
+      "vite": "$vite"
+    }
   }
 }
