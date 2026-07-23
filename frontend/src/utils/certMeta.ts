@@ -29,7 +29,7 @@ export const CERT_META: Record<string, CertInfo> = {
     level: 'associate',
     icon: 'ph-code',
   },
-  'SOA-C02': {
+  'SOA-C03': {
     name: 'CloudOps Engineer',
     color: '#f59e0b',
     level: 'associate',

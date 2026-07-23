@@ -1,9 +1,12 @@
 /**
- * App.tsx — Definição de rotas e captura do token Cognito.
+ * App.tsx — Layout principal e definição de rotas.
+ *
+ * Layout:
+ *   Sidebar (fixa à esquerda) + conteúdo principal à direita
  *
  * Rotas:
  *   /                    → HomePage (Aluno + Mentor)
- *   /exam                → ExamPage (autenticado)
+ *   /exam                → ExamPage (autenticado, fullscreen sem sidebar)
  *   /result              → ResultPage (autenticado)
  *   /review              → ReviewPage (autenticado)
  *   /progress            → ProgressPage (autenticado)
@@ -11,23 +14,23 @@
  *   /dashboard/:alunoId  → DashboardAlunoPage (Mentor only)
  */
 import { useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
-import NavBar from './components/NavBar'
+import Sidebar from './components/NavBar'
 import ProtectedRoute from './components/ProtectedRoute'
 
-// Páginas — lazy import seria ideal, mas para o MVP importamos direto
-// (serão criadas nas tasks 9-11; por agora usamos placeholders)
 import HomePage from './pages/HomePage'
 import ExamPage from './pages/ExamPage'
 import ResultPage from './pages/ResultPage'
 import ReviewPage from './pages/ReviewPage'
 import ProgressPage from './pages/ProgressPage'
+import ProfilePage from './pages/ProfilePage'
 import DashboardTurmaPage from './pages/DashboardTurmaPage'
 import DashboardAlunoPage from './pages/DashboardAlunoPage'
 
 export default function App() {
   const { login } = useAuth()
+  const location = useLocation()
 
   // Captura o token do hash da URL após redirect do Cognito Hosted UI
   useEffect(() => {
@@ -44,36 +47,41 @@ export default function App() {
     }
   }, [login])
 
+  // Exam page is fullscreen — no sidebar wrapper
+  const isExam = location.pathname === '/exam'
 
   return (
-    <>
-      <NavBar />
-      <Routes>
-        {/* Rotas públicas (requerem apenas autenticação) */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/exam" element={<ExamPage />} />
-        <Route path="/result" element={<ResultPage />} />
-        <Route path="/review" element={<ReviewPage />} />
-        <Route path="/progress" element={<ProgressPage />} />
+    <div className={isExam ? '' : 'app-layout'}>
+      <Sidebar />
+      <main className={isExam ? '' : 'app-content'}>
+        <Routes>
+          {/* Rotas públicas (requerem apenas autenticação) */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/exam" element={<ExamPage />} />
+          <Route path="/result" element={<ResultPage />} />
+          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-        {/* Rotas protegidas — apenas Mentor */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute requiredPapel="Mentor">
-              <DashboardTurmaPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard/:alunoId"
-          element={
-            <ProtectedRoute requiredPapel="Mentor">
-              <DashboardAlunoPage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </>
+          {/* Rotas protegidas — apenas Mentor */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requiredPapel="Mentor">
+                <DashboardTurmaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/:alunoId"
+            element={
+              <ProtectedRoute requiredPapel="Mentor">
+                <DashboardAlunoPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+    </div>
   )
 }

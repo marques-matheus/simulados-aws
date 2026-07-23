@@ -122,4 +122,5 @@ export interface AuthState {
   sub: string | null
   papel: Papel | null
   email: string | null
+  nome: string | null
 }

@@ -6,6 +6,7 @@ import { CERT_META } from '../utils/certMeta'
 import { formatText } from '../utils/formatText'
 import { getRecentlyUsedIds, saveExamToHistory, savePerformanceHistory } from '../utils/antiRepeat'
 import LoadingSpinner from '../components/LoadingSpinner'
+import Modal from '../components/Modal'
 import type { Questao, ExamConfig, Resultado } from '../types'
 
 // Shuffle utility
@@ -35,6 +36,21 @@ export default function ExamPage() {
   const [flagged, setFlagged] = useState<Set<number>>(new Set())
   const [fontSize, setFontSize] = useState(15)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fetchingCorrection, setFetchingCorrection] = useState(false)
+  
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean
+    type: 'danger' | 'warning' | 'info'
+    title: string
+    message: string
+    onConfirm: () => void
+    onCancel?: () => void
+    confirmText?: string
+  }>({ isOpen: false, type: 'info', title: '', message: '', onConfirm: () => {} })
+
+  function closeModal() {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   // Initialize exam
   useEffect(() => {
@@ -95,9 +111,10 @@ export default function ExamPage() {
     ? [q.correct]
     : []
 
-  function handleOptionClick(idx: number) {
-    if (isComplete) return // block clicks if already answered in training mode
+  async function handleOptionClick(idx: number) {
+    if (isComplete || fetchingCorrection) return // block clicks if already answered or fetching
 
+    let finalAns: number | number[]
     if (isMulti) {
       let currentArr = answers[currentIdx]
         ? [...(answers[currentIdx] as number[])]
@@ -110,20 +127,45 @@ export default function ExamPage() {
           currentArr.push(idx)
         }
       }
-      
-      setAnswers(prev => ({ ...prev, [currentIdx]: currentArr }))
-      
-      // If training mode and we just reached the required number of answers, we could auto-fetch correction here.
-      // But we need to call API to correct it first. Since the old vanilla JS logic did not fetch per-question
-      // in training mode, it seems training mode might not work properly unless q.correct was populated ahead of time.
-      // However, the previous app.js did NOT fetch corrections per question during training mode.
-      // WAIT! The previous app.js actually had a flaw in training mode: `q.correct` was only set AFTER `/corrigir`.
-      // So in app.js, training mode could never show answers instantly unless `q.correct` came from the initial `/questoes`.
-      // The API now hides `respostas_corretas`. We cannot do instantaneous training mode without a per-question API call,
-      // or we just accept that training mode is broken in the current API architecture, or we implement a new endpoint.
-      // For this migration, we'll keep the exact same behavior as app.js (meaning training mode won't reveal anything because q.correct is undefined).
+      finalAns = currentArr
     } else {
-      setAnswers(prev => ({ ...prev, [currentIdx]: idx }))
+      finalAns = idx
+    }
+
+    setAnswers(prev => ({ ...prev, [currentIdx]: finalAns }))
+
+    // Training mode auto-fetch correction
+    if (config.trainingMode) {
+      const isAnsComplete = isMulti ? (finalAns as number[]).length === numCorrect : true
+      if (isAnsComplete && q.correct === undefined) {
+        setFetchingCorrection(true)
+        try {
+          const res = await apiFetch<Resultado>('/corrigir', {
+            method: 'POST',
+            body: JSON.stringify({
+              prova: config.cert,
+              questoes_ids: [q.SK],
+              respostas: { "0": finalAns }
+            })
+          })
+          if (res.detalhes && res.detalhes.length > 0) {
+            const detalhe = res.detalhes[0]
+            const updatedQuestions = [...examQuestions]
+            updatedQuestions[currentIdx] = {
+              ...updatedQuestions[currentIdx],
+              correct: detalhe.resposta_correta.length === 1 ? detalhe.resposta_correta[0] : detalhe.resposta_correta,
+              explicacao: detalhe.explicacao
+            }
+            setExamQuestions(updatedQuestions)
+          } else {
+            console.error("Modo treino: Backend não retornou detalhes.")
+          }
+        } catch (err: any) {
+          console.error("Erro ao obter correção no Modo Treino:", err)
+        } finally {
+          setFetchingCorrection(false)
+        }
+      }
     }
   }
 
@@ -142,14 +184,27 @@ export default function ExamPage() {
     return false
   }
 
-  async function handleFinishExam() {
+  function handleFinishExam() {
     const unanswered = examQuestions.length - Object.keys(answers).filter(k => !isAnswerEmpty(answers[parseInt(k)])).length
     if (unanswered > 0) {
-      if (!window.confirm(`Você tem ${unanswered} questão(ões) sem resposta. Deseja finalizar mesmo assim?`)) {
-        return
-      }
+      setModalConfig({
+        isOpen: true,
+        type: 'warning',
+        title: 'Atenção',
+        message: `Você tem ${unanswered} questão(ões) sem resposta. Deseja finalizar mesmo assim?`,
+        confirmText: 'Finalizar',
+        onConfirm: () => {
+          closeModal()
+          submitExam()
+        },
+        onCancel: closeModal
+      })
+    } else {
+      submitExam()
     }
+  }
 
+  async function submitExam() {
     setIsSubmitting(true)
     timer.pause()
 
@@ -211,7 +266,14 @@ export default function ExamPage() {
       })
 
     } catch (err: any) {
-      alert(err.message || 'Erro ao corrigir prova no servidor.')
+      setModalConfig({
+        isOpen: true,
+        type: 'danger',
+        title: 'Erro ao corrigir',
+        message: err.message || 'Erro ao corrigir prova no servidor.',
+        confirmText: 'Entendi',
+        onConfirm: closeModal
+      })
       setIsSubmitting(false)
       timer.resume()
     }
@@ -219,8 +281,9 @@ export default function ExamPage() {
 
   return (
     <>
+      <Modal {...modalConfig} />
       {isSubmitting && <LoadingSpinner overlay message="Corrigindo prova..." />}
-      {timer.isPaused && !isSubmitting && (
+      {timer.isPaused && !isSubmitting && !modalConfig.isOpen && (
         <div className="pause-overlay">
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: '#fff' }}>Simulado Pausado</h2>
@@ -246,9 +309,12 @@ export default function ExamPage() {
             />
           </div>
         </div>
-        <div className="exam-header-right">
-          <button className="btn-icon" onClick={timer.pause} title="Pausar simulado">
-            <i className="ph ph-pause" />
+        <div className="exam-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="btn-icon" onClick={timer.isPaused ? timer.resume : timer.pause} title={timer.isPaused ? 'Continuar' : 'Pausar'} style={{ height: '32px', width: '32px' }}>
+            <i className={`ph ${timer.isPaused ? 'ph-play' : 'ph-pause'}`} />
+          </button>
+          <button className="btn-primary btn-sm" onClick={handleFinishExam} style={{ padding: '0 1rem', height: '32px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <i className="ph ph-check" /> Finalizar
           </button>
           <div className="exam-timer">
             <i className="ph ph-timer" /> <span>{timer.formatted}</span>
@@ -333,9 +399,9 @@ export default function ExamPage() {
             )}
           </div>
 
-          <div className="question-nav">
+          <div className="question-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
             <button
-              className="btn-outline"
+              className="btn-nav"
               disabled={currentIdx === 0}
               onClick={() => setCurrentIdx(i => i - 1)}
             >
@@ -352,26 +418,15 @@ export default function ExamPage() {
               ))}
             </div>
 
-            {currentIdx === examQuestions.length - 1 ? (
-              <button className="btn-primary" onClick={handleFinishExam} style={{ width: 'auto' }}>
-                <i className="ph ph-check" /> Finalizar
-              </button>
-            ) : (
-              <button className="btn-primary" onClick={() => setCurrentIdx(i => i + 1)} style={{ width: 'auto' }}>
-                Próxima <i className="ph ph-arrow-right" />
-              </button>
-            )}
-          </div>
-          
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <button
-              className="btn-outline btn-sm"
-              style={{ opacity: 0.5 }}
-              onClick={handleFinishExam}
+            <button 
+              className="btn-nav-primary" 
+              disabled={currentIdx === examQuestions.length - 1}
+              onClick={() => setCurrentIdx(i => i + 1)}
             >
-              Finalizar simulado agora
+              Próxima <i className="ph ph-arrow-right" />
             </button>
           </div>
+
         </div>
       </main>
     </>

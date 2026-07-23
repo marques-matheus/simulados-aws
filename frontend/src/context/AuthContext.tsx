@@ -16,12 +16,14 @@ const SESSION_KEY = 'aws_mentoria_token'
 type AuthAction =
   | { type: 'LOGIN'; payload: { token: string; claims: JwtClaims } }
   | { type: 'LOGOUT' }
+  | { type: 'UPDATE_NOME'; payload: string }
 
 // ─── Context Value ───────────────────────────────────────────────────────────
 
 interface AuthContextValue extends AuthState {
   login: (token: string) => void
   logout: () => void
+  updateNome: (nome: string) => void
   isAuthenticated: boolean
 }
 
@@ -34,6 +36,7 @@ let initialToken = null
 let initialSub = null
 let initialPapel = null
 let initialEmail = null
+let initialNome = null
 
 if (stored) {
   const claims = decodeJwt(stored)
@@ -41,6 +44,8 @@ if (stored) {
     initialToken = stored
     initialSub = claims.sub ?? null
     initialEmail = claims.email ?? null
+    const savedName = typeof window !== 'undefined' ? localStorage.getItem('aws_mentoria_nome') : null
+    initialNome = savedName || (claims.name as string) || (claims.given_name as string) || (claims.nickname as string) || (claims.preferred_username as string) || null
     initialPapel = getPapel(claims) as Papel
   } else {
     if (typeof window !== 'undefined') sessionStorage.removeItem(SESSION_KEY)
@@ -52,6 +57,7 @@ const initialState: AuthState = {
   sub: initialSub,
   papel: initialPapel,
   email: initialEmail,
+  nome: initialNome,
 }
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -62,6 +68,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token,
         sub: claims.sub ?? null,
         email: claims.email ?? null,
+        nome: (typeof window !== 'undefined' ? localStorage.getItem('aws_mentoria_nome') : null) || (claims.name as string) || (claims.given_name as string) || (claims.nickname as string) || (claims.preferred_username as string) || null,
         papel: getPapel(claims) as Papel,
       }
     }
@@ -71,7 +78,10 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         sub: null,
         papel: null,
         email: null,
+        nome: null,
       }
+    case 'UPDATE_NOME':
+      return { ...state, nome: action.payload }
     default:
       return state
   }
@@ -94,13 +104,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     sessionStorage.removeItem(SESSION_KEY)
+    if (typeof window !== 'undefined') localStorage.removeItem('aws_mentoria_nome')
     dispatch({ type: 'LOGOUT' })
+  }
+
+  function updateNome(nome: string) {
+    if (typeof window !== 'undefined') localStorage.setItem('aws_mentoria_nome', nome)
+    dispatch({ type: 'UPDATE_NOME', payload: nome })
   }
 
   const value: AuthContextValue = {
     ...state,
     login,
     logout,
+    updateNome,
     isAuthenticated: state.token !== null,
   }
 

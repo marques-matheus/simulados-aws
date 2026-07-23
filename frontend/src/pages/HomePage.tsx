@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks/useApi'
 import { CERT_META, CERT_CODES } from '../utils/certMeta'
 import { getRecentlyUsedIds } from '../utils/antiRepeat'
 import LoadingSpinner from '../components/LoadingSpinner'
-import type { Questao, ExamConfig, Turma } from '../types'
+import type { Questao, ExamConfig } from '../types'
 
 export default function HomePage() {
-  const { isAuthenticated, papel } = useAuth()
+  const { isAuthenticated, email, nome } = useAuth()
   const { apiFetch } = useApi()
   const navigate = useNavigate()
 
@@ -20,57 +20,7 @@ export default function HomePage() {
   const [qty, setQty] = useState(30)
   const [trainingMode, setTrainingMode] = useState(false)
 
-  const [minhasTurmas, setMinhasTurmas] = useState<Turma[]>([])
-  const [codigoConvite, setCodigoConvite] = useState('')
-  const [entrandoTurma, setEntrandoTurma] = useState(false)
 
-  const [meuNome, setMeuNome] = useState('')
-  const [salvandoPerfil, setSalvandoPerfil] = useState(false)
-
-  // Fetch turmas do aluno
-  useEffect(() => {
-    if (isAuthenticated && papel === 'Aluno') {
-      apiFetch<Turma[]>('/turmas')
-        .then(data => setMinhasTurmas(data || []))
-        .catch(err => console.error("Erro ao carregar turmas", err))
-    }
-  }, [isAuthenticated, papel])
-
-  async function handleEntrarTurma(e: React.FormEvent) {
-    e.preventDefault()
-    if (!codigoConvite.trim()) return
-    setEntrandoTurma(true)
-    try {
-      const res = await apiFetch<{mensagem: string, turma_id: string, nome_turma: string}>('/turmas/entrar', {
-        method: 'POST',
-        body: JSON.stringify({ codigo_convite: codigoConvite })
-      })
-      alert(res.mensagem)
-      setMinhasTurmas(prev => [...prev, { turma_id: res.turma_id, nome: res.nome_turma } as Turma])
-      setCodigoConvite('')
-    } catch (err: any) {
-      alert(err.message || 'Erro ao entrar na turma.')
-    } finally {
-      setEntrandoTurma(false)
-    }
-  }
-
-  async function handleSalvarPerfil(e: React.FormEvent) {
-    e.preventDefault()
-    if (!meuNome.trim()) return
-    setSalvandoPerfil(true)
-    try {
-      const res = await apiFetch<{mensagem: string}>('/perfil', {
-        method: 'POST',
-        body: JSON.stringify({ nome: meuNome })
-      })
-      alert(res.mensagem)
-    } catch (err: any) {
-      alert(err.message || 'Erro ao salvar perfil.')
-    } finally {
-      setSalvandoPerfil(false)
-    }
-  }
 
   // Fetch questions when a cert is clicked
   async function handleSelectCert(cert: string) {
@@ -150,68 +100,19 @@ export default function HomePage() {
       {loadingMsg && <LoadingSpinner overlay message={loadingMsg} />}
 
       <header className="home-header">
-        <div className="logotype">
-          <div className="logo-mark">C</div>
-          <div className="logo-text">Simulados <span>| AWS</span></div>
-        </div>
-        <h1>Domine a AWS com simulados focados</h1>
-        <p>Pratique com questões atualizadas, acompanhe sua evolução e conquiste sua próxima certificação cloud.</p>
+        <h1 className="greeting">
+          {isAuthenticated ? `Olá, ${nome || email?.split('@')[0] || 'estudante'} 👋` : 'Bem-vindo ao KUMO 👋'}
+        </h1>
+        <p className="greeting-sub">
+          {isAuthenticated
+            ? 'Escolha uma certificação e comece seu simulado.'
+            : 'Faça login para praticar com simulados focados em certificações AWS.'}
+        </p>
       </header>
 
-      {isAuthenticated && (
-        <div className="turma-join-section" style={{ marginBottom: isAuthenticated && papel === 'Aluno' ? '1rem' : '2rem' }}>
-          <h3><i className="ph ph-user" /> Meu Perfil</h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            Como você quer ser chamado(a) no dashboard das suas turmas?
-          </p>
-          <form onSubmit={handleSalvarPerfil} style={{ display: 'flex', gap: '8px' }}>
-            <input 
-              type="text" 
-              placeholder="Seu nome completo ou apelido" 
-              value={meuNome}
-              onChange={e => setMeuNome(e.target.value)}
-              disabled={salvandoPerfil}
-              style={{ flex: 1, padding: '0.8rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-inset)', color: 'var(--text)' }}
-            />
-            <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={salvandoPerfil}>
-              {salvandoPerfil ? 'Salvando...' : 'Salvar Nome'}
-            </button>
-          </form>
-        </div>
-      )}
 
-      {isAuthenticated && papel === 'Aluno' && (
-        <div className="turma-join-section">
-          <h3><i className="ph ph-users-three" /> Minhas Turmas</h3>
-          {minhasTurmas.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
-              {minhasTurmas.map(t => (
-                <div key={t.turma_id} className="turma-current">
-                  <i className="ph ph-chalkboard-teacher" />
-                  <span>Você está na turma: <span className="turma-name">{t.nome_turma || t.nome}</span></span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>Você ainda não está em nenhuma turma. Peça o código de convite ao seu mentor.</p>
-          )}
-          
-          {minhasTurmas.length < 2 && (
-            <form onSubmit={handleEntrarTurma} className="turma-join-form">
-              <input 
-                type="text" 
-                placeholder="CÓDIGO DE CONVITE" 
-                value={codigoConvite}
-                onChange={e => setCodigoConvite(e.target.value.toUpperCase())}
-                disabled={entrandoTurma}
-              />
-              <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={entrandoTurma}>
-                {entrandoTurma ? 'Entrando...' : 'Entrar'}
-              </button>
-            </form>
-          )}
-        </div>
-      )}
+
+
 
       <div className="cert-section-title">Escolha sua Certificação</div>
       
