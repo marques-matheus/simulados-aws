@@ -1,28 +1,28 @@
-# Plataforma Serverless de Simulados AWS ☁️
+# Kumo - Plataforma Serverless de Simulados AWS
 
-**Status:** Concluído ✅
+**Status:** Concluído
 
-Uma plataforma educacional completa, rodando 100% de forma Serverless na infraestrutura da AWS. O sistema permite que estudantes simulem exames de certificações AWS reais e acompanhem seu progresso, enquanto mentores podem criar turmas, convidar alunos e acompanhar a evolução analítica de cada um através de um painel de controle.
+Kumo é uma plataforma educacional completa, rodando 100% de forma Serverless na infraestrutura da AWS. O sistema permite que estudantes simulem exames de certificações AWS reais e acompanhem seu progresso, enquanto mentores podem criar turmas, convidar alunos e acompanhar a evolução analítica de cada um através de um painel de controle.
 
 ---
 
-## 🎯 Principais Funcionalidades
+## Principais Funcionalidades
 
-### Para Alunos 🧑‍🎓
+### Para Alunos
 - **Simulados Dinâmicos:** As questões são embaralhadas e validadas diretamente no banco de dados.
 - **Histórico e Evolução:** Todos os simulados realizados ficam gravados na nuvem, acessíveis de qualquer dispositivo através da página de Evolução.
 - **Turmas de Mentoria:** Possibilidade de usar códigos de convite para ingressar em turmas de mentores.
 - **Anti-Repetição Inteligente:** O algoritmo evita que questões respondidas nos últimos simulados caiam no próximo.
 
-### Para Mentores 👨‍🏫
+### Para Mentores
 - **Gerenciamento de Turmas:** Crie turmas e gere códigos de convite instantâneos.
 - **Dashboard Analítico:** Visualize a média de pontuação, total de simulados feitos e identifique os domínios/tópicos onde a turma ou alunos individuais estão com pior desempenho.
 
 ---
 
-## 🏗️ Arquitetura (AWS Serverless)
+##  Arquitetura (AWS Serverless)
 
-Toda a fundação cloud do projeto foi provisionada e é gerenciada via **Terraform (IaC)**, utilizando as melhores práticas de esteira CI/CD via GitHub Actions.
+Toda a fundação cloud do projeto foi provisionada e é gerenciada via **Terraform **, utilizando as melhores práticas de esteira CI/CD via GitHub Actions.
 
 Para visualizar o diagrama de arquitetura em detalhes:
 
