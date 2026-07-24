@@ -24,7 +24,9 @@ Uma plataforma educacional completa, rodando 100% de forma Serverless na infraes
 
 Toda a fundação cloud do projeto foi provisionada e é gerenciada via **Terraform (IaC)**, utilizando as melhores práticas de esteira CI/CD via GitHub Actions.
 
-Para visualizar o diagrama de arquitetura em detalhes, acesse: [architecture_diagram.md](./architecture_diagram.md).
+Para visualizar o diagrama de arquitetura em detalhes:
+
+![Diagrama de Arquitetura](./arquitetura.png)
 
 - **Frontend:** React + Vite, hospedado via estática no Amazon S3 com distribuição por CDN via Amazon CloudFront.
 - **Autenticação:** Amazon Cognito (User Pool). Uma Lambda de *Pre Token Generation* intercepta o login e injeta o perfil (Aluno/Mentor) no JWT.
